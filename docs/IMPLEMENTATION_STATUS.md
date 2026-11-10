@@ -1,27 +1,31 @@
 # Trạng thái triển khai
 
-Đây là foundation có thể build/test, chưa phải MVP end-to-end hoàn chỉnh. UI gốc thuộc demo; không đánh đồng mock interaction với backend.
+Phạm vi đã chốt: toàn bộ MVP, giữ thiết kế Figma và thay mock data bằng Supabase thật; chưa có project Supabase để áp migrations từ xa.
 
-| Tính năng | UI | Logic/foundation | Supabase và việc còn lại |
-|---|---|---|---|
-| Auth | Login gốc dùng chung | Provider session restoration, PKCE, guards, errors, sign-out | Code integration đã có; chưa kiểm tra Google OAuth từ xa |
-| Onboarding/Profile | UI gốc demo; form thật riêng | Dynamic catalogs, nhiều môn, proficiency, strong/weak, goals/styles, lịch rảnh | RPC lưu nguyên tử + RLS đã test local; cần kiểm thử API thật, đưa form thật về đúng UI gốc, avatar upload riêng |
-| Matching | UI gốc demo | Pure scoring, overlap, explainability, stable ranking/filter; demo gọi domain mới | Candidate repository phân trang + service; thiếu timezone/DST adapter và live UI hook |
-| Invitations | UI/notifications demo | Client rules, duplicate/self/block/transition checks | Transactional RPC + RLS test local; chưa nối UI thật |
-| Chat | UI demo | History paging, send/mark-read, Realtime cleanup/error callback | Repository + participant RLS; còn unread UI, dedup/reconnect và test delivery thật |
-| Scheduling | UI demo | UTC validation, explicit state machine | Propose/respond/reschedule RPC + security tests; còn live UI, topic-selection repository, tự động đánh dấu missed |
-| Study Room | UI demo | Timestamp Pomodoro 25/50, pause/resume/reset; checklist logic | Attendance/goals/Meet/feedback adapters, server progress timestamps; chưa nối room theo ID thật |
-| Documents | Library/resource UI demo | MIME/size checks, metadata, educational links, signed URLs | Private bucket policies + upload/list/delete adapters; còn nối UI, previews thật, orphan reconciliation |
-| Progress | UI demo (số liệu mẫu) | Pure aggregate từ actual session/goal inputs, unit test | Chưa fetch/hiển thị thống kê thật; không cho client ghi counters |
-| Notifications | Bell UI demo | Transactional notifications và owner-only read/mark-read | Chưa nối bell với repository/Realtime |
-| Pricing | Giữ UI demo | Không triển khai thanh toán | Ngoài foundation; không dùng dịch vụ trả phí |
-| Deployment | Vercel config + SPA fallback | Production demo guard có test/browser check | Chưa deploy |
+| Tính năng | UI và code integration | Kiểm chứng / việc còn lại |
+|---|---|---|
+| Auth | Login Figma, Google PKCE, session restoration, Remember, sign-out, guards | Browser guard/storage tests; cần Google provider thật |
+| Hồ sơ/Onboarding | Editors Figma, năm bước, dynamic catalogs/custom options, per-subject knowledge, avatar private | SQL/browser save-refresh tests; cần Storage/Auth HTTP thật |
+| Matching | Trọng số 35/30/20/15, complementary topics, timezone/DST, explainability/filter/paging | Unit tests + browser candidates/invitation flow |
+| Invitations/Block/Report | Pending/accept/reject/cancel, duplicates/self/block/actor rules, privacy controls | SQL authorization + two-user browser flow |
+| Chat | Conversations thật, cursor history, sending, unread, Realtime cleanup/reconnect/dedup | SQL/browser persistence; WebSocket delivery remote chưa kiểm tra |
+| Scheduling | Propose/topic/goal, confirm/reject, reschedule/cancel, UTC/state rules | SQL/browser flow; reconcile khi user truy cập, chưa có cron |
+| Study Room | ID access, attendance, Pomodoro25/50, goals, Meet, complete/feedback | SQL/browser workflow; timer local, progress theo server clock |
+| Documents | Session-scoped library, file/link/Quiz, private previews/downloads, attach/delete | SQL/storage policies + browser upload/sign/preview qua test transport; remote Storage chưa kiểm tra |
+| Progress | Time/count/partners/goals/history/chart từ actual records | Unit/SQL/browser aggregate checks |
+| Notifications | Transactional rows, real bell, owner reads và unread total | SQL/browser checks; remote Realtime chưa kiểm tra |
+| Pricing | Giữ card layout, MVP miễn phí; Sprint/Plus chưa phát hành | Không có fake metrics hoặc billing; payment ngoài scope |
+| Deployment | Vercel SPA config, no hardcoded production localhost | Chưa deploy |
 
-## Ưu tiên tiếp theo
+Không có `src/demo`, fake default profiles/messages/counters, simulated timeout writes hoặc route IntegrationStatus trong app. Fixtures chỉ tồn tại trong tests; local test HTTP transport không được import vào production.
 
-1. Tạo Supabase project mới, review/apply migration + seed; bật Google OAuth, kiểm tra auth và profile API bằng hai tài khoản.
-2. Nối profile UI gốc với repository/hook thật, bổ sung avatar Storage và trải nghiệm editor thống nhất.
-3. Hoàn thiện timezone normalization; nối matching và invitations, xử lý loading/error/empty.
-4. Nối chat với Realtime, unread và reconnect; nối scheduling và room theo session ID.
-5. Nối file previews và progress/notifications thật; thêm reconciliation và missed-session automation phù hợp.
-6. Chạy end-to-end authorization bằng nhiều user trên Supabase; deploy preview Vercel khi được yêu cầu.
+## Việc bạn cần làm để chạy dữ liệu thật
+
+1. Tạo Supabase project mới; áp hai migrations và seed catalog theo SUPABASE_SETUP.md.
+2. Bật Google OAuth, cấu hình callback/redirect URLs, thêm URL và publishable key vào .env.local.
+3. Chạy thử hai account thật trong browser profiles khác nhau; xác nhận PostgREST, Storage signed URLs và Realtime.
+4. Khi được yêu cầu deploy, thêm env/redirect domain vào Vercel và kiểm tra deep links.
+
+## Giới hạn vận hành MVP
+
+Chưa có background cron khi tất cả user offline, orphan-file cleanup job, tự tạo Google Meet hoặc thanh toán. Candidate/chat đã paging; workspace lists cá nhân hiện được snapshot cùng lúc và cần phân trang tiếp khi dữ liệu tăng lớn. Không tuyên bố các dịch vụ remote hoạt động trước khi project thật được cấu hình và kiểm chứng.

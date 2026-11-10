@@ -1,30 +1,22 @@
 # Phát triển
 
-1. Cài dependencies bằng `npm ci`. Nếu Google Drive gây lỗi tar write, chạy `scripts/install-dependencies.ps1` như README. Lockfile đã có trong repository.
-2. `.env.local` hiện bật demo để chạy UI không cần Supabase. Các biến môi trường không được commit. Đổi `VITE_DEMO_MODE=false` để dùng luồng thật.
-3. `npm run dev`, `npm run typecheck`, `npm run test`, `npm run build`. `npm run preview` dùng production bundle, demo luôn bị tắt.
+`npm ci`, cấu hình `.env.local` theo SUPABASE_SETUP.md rồi `npm run dev`. Không có demo switch; chưa cấu hình backend thì chỉ Login hoạt động, không tạo user/writes giả. Google Drive có thể cần scripts/install-dependencies.ps1.
 
-## Thêm tính năng
+Feature directories dùng kebab-case, components/types PascalCase, functions/hooks camelCase và database snake_case. Giữ markup/class/token từ Figma khi đổi data bindings. UI chỉ xác nhận thành công sau API; không fallback về mock khi lỗi. Dùng ErrorNotice và giữ form khi mutation thất bại.
 
-Đặt presentation trong `features/<feature>/components`, custom hooks khi có orchestration/lifecycle, business rules thuần trong `domain` hoặc `services`, Supabase calls trong `repositories`. Chỉ tạo folder có code thực sự. PascalCase cho component/type, camelCase cho function/hook, kebab-case cho feature, snake_case cho database.
+Thêm business rule thuần ở domain, test độc lập React/Supabase. Queries/Storage/RPC nằm sau adapters/services/hooks; schema changes dùng migration version mới. Quyền actor/state phải được bảo vệ ở database, không chỉ UI. Không có service_role hoặc OAuth secret trong VITE_*.
 
-Khi tách screen từ `src/demo`, giữ markup, class và token hiện có. Thay mock state bằng props/hook; xử lý loading, empty và error rõ ràng. Chưa nối backend thì không thông báo thành công như thao tác thật. Giữ demo riêng để kiểm tra regression thiết kế.
-
-Không import Supabase vào domain. Repository throw error, UI dùng `errorMessage`; không nuốt lỗi hoặc fallback về mock production. Query theo RLS; mutation nhạy cảm dùng RPC. Auth/session không được tạo giả trong repository. Realtime cần cleanup, dedup và reload history sau reconnect; file dùng signed URL có hạn.
-
-Thời gian session phải có timezone, chuẩn hóa ISO UTC trước khi gửi. Weekly availability local phải normalize theo timezone và tuần tham chiếu trước matching; chưa có adapter production. Không so sánh trực tiếp ngày/giờ local của hai user khác múi giờ.
-
-## Tests
-
-Vitest chạy các fixtures deterministic cho matching, scheduling, timer, invitation rules, progress, env/file validation. `tests/database/security.test.ts` dùng PGlite PostgreSQL/WASM với schema auth/storage tối thiểu, áp migration và kiểm tra quyền bằng role authenticated/anon. Không cần Docker hay remote credentials.
+Realtime subscriptions trả cleanup, cần dedup theo ID và reload khi reconnect; workspace snapshot gắn với actor ID. Không publish private file URL lâu dài. Khi thay profile/provider, giữ request-generation checks để response cũ không ghi đè state mới. Timer dùng timestamps và cleanup interval, không dùng tick count làm số giờ học server.
 
 ```powershell
-npm run test
-npm run test:watch
 npm run typecheck
+npm run test
 npm run build
+npm run test:e2e
 ```
 
-Test SQL không xác nhận dịch vụ Supabase từ xa. Sau khi cấu hình project mới, cần kiểm tra OAuth redirect/refresh/sign-out, onboarding save, đọc chéo user, Storage upload/signed URL, Realtime và refresh deep link trên Vercel.
+Vitest chạy domain, timezone/DST, env/session storage và SQL authorization qua PGlite. Playwright dùng migrations thật với HTTP transport chỉ trong tests/e2e; user/session fixtures không nằm trong src hoặc seed. Các tests này không xác nhận Google provider, Supabase PostgREST nuances, WebSocket delivery hoặc Storage HTTP remote. Dùng project thật kiểm tra cuối theo checklist setup.
 
-Git đã init ở StudyMatch, chưa có commit/remote. Kiểm tra `git status` trước commit; `.env.local`, node_modules, dist, coverage và .vercel bị ignore.
+E2E dùng Chrome chuẩn trên Windows, CHROME_EXECUTABLE nếu được đặt, hoặc browser Chromium đã cài bằng `npx playwright install chromium`. Test artifacts ở test-results/playwright-report được ignore. `npm run format` dùng Prettier.
+
+Không push/deploy hay sửa remote database ngoài phạm vi đã được yêu cầu. Ghi kết quả xác minh thực tế ở VERIFICATION.md; phân biệt code integration, test fixture và remote verification.

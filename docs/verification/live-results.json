@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-10",
+  "sourceComparison": {
+    "directories": [
+      "src",
+      "tests",
+      "supabase"
+    ],
+    "mismatches": 0
+  },
+  "localVerification": {
+    "typecheck": "passed",
+    "unitAndDatabase": {
+      "passed": 82,
+      "files": 9,
+      "sqlAuthorizationTests": 26
+    },
+    "build": "passed",
+    "browser": {
+      "passed": 3,
+      "twoUserWorkflowPageErrors": 0
+    }
+  },
+  "figmaCssSha256": "9790d37f922ab6ea354d43465ded4f6bd3658ce9cb7d90a4afd6e661283a65bb",
+  "screenshot": "Test fixture data only; local transport has no Realtime delivery.",
+  "remoteSupabase": "Not configured or verified",
+  "deployed": false,
+  "workspaceVerification": {
+    "typecheck": "passed",
+    "unitAndDatabase": {
+      "passed": 82,
+      "files": 9
+    },
+    "build": "passed"
+  }
+}

@@ -7,3 +7,6 @@ coverage/
 .vercel/
 *.log
 supabase/.temp/
+
+test-results/
+playwright-report/

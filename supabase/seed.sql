@@ -1,10 +1,141 @@
--- Reference catalogs only; no fake users or application statistics.
-insert into public.universities(name) values
- ('ĐH Bách Khoa Hà Nội'), ('ĐH Bách Khoa TP.HCM'), ('ĐH Kinh tế Quốc dân') on conflict(name) do nothing;
-insert into public.majors(name) values ('Công nghệ thông tin'), ('Khoa học máy tính'), ('Kinh tế') on conflict(name) do nothing;
-insert into public.subjects(code,name) values ('MT1003','Giải tích 1'),('CO2003','Cấu trúc dữ liệu'),('MT2013','Xác suất thống kê') on conflict(code) do nothing;
-insert into public.topics(subject_id,name)
-select s.id,t.name from public.subjects s join (values
- ('MT1003','Giới hạn'),('MT1003','Đạo hàm'),('MT1003','Chuỗi số'),('MT1003','Tích phân suy rộng'),
- ('CO2003','Mảng'),('CO2003','Cây'),('CO2003','Đồ thị'),('MT2013','Biến ngẫu nhiên'),('MT2013','Phân phối chuẩn')
-) as t(code,name) on t.code=s.code on conflict(subject_id,name) do nothing;
+BEGIN;
+
+-- University reference catalog
+INSERT INTO public.universities(name) VALUES
+  ('Đại học Bách khoa Hà Nội'),
+  ('Trường Đại học Bách khoa - Đại học Quốc gia TP.HCM'),
+  ('Đại học Kinh tế Quốc dân'),
+  ('Trường Đại học Sư phạm Hà Nội'),
+  ('Trường Đại học Công nghệ - Đại học Quốc gia Hà Nội'),
+  ('Học viện Công nghệ Bưu chính Viễn thông'),
+  ('Đại học Phenikaa')
+ON CONFLICT(name) DO NOTHING;
+
+-- Broad major reference catalog
+INSERT INTO public.majors(name) VALUES
+  ('Công nghệ thông tin'),
+  ('Khoa học máy tính'),
+  ('Khoa học dữ liệu và Trí tuệ nhân tạo'),
+  ('Kỹ thuật phần mềm'),
+  ('Hệ thống thông tin'),
+  ('An toàn thông tin'),
+  ('Kỹ thuật máy tính'),
+  ('Kỹ thuật điện tử - viễn thông'),
+  ('Quản trị kinh doanh'),
+  ('Kinh tế'),
+  ('Logistics và Quản lý chuỗi cung ứng')
+ON CONFLICT(name) DO NOTHING;
+
+-- Subjects: code and name as listed in source categories (HUST only)
+INSERT INTO public.subjects(code, name) VALUES
+  ('MI1026', 'Giải tích 2 (CTTT)'),
+  ('MI2036', 'Xác suất thống kê và tín hiệu ngẫu nhiên'),
+  ('MI3180', 'Xác suất thống kê và quy hoạch thực nghiệm'),
+  ('MI3042', 'Phương pháp số'),
+  ('MI3600', 'Phân tích dữ liệu và tri thức kinh doanh'),
+  ('IT2030', 'Technical Writing and Presentation'),
+  ('IT3030', 'Kiến trúc máy tính'),
+  ('IT3070', 'Nguyên lý hệ điều hành'),
+  ('IT3080', 'Mạng máy tính'),
+  ('IT3120', 'Phân tích và thiết kế hệ thống'),
+  ('IT3180', 'Nhập môn công nghệ phần mềm'),
+  ('IT4012', 'Bảo mật thông tin'),
+  ('IT4015', 'Nhập môn an toàn thông tin'),
+  ('IT4180', 'Chương trình dịch'),
+  ('IT4244', 'Quản trị dự án CNTT'),
+  ('IT4272', 'Hệ thống máy tính'),
+  ('IT4440', 'Tương tác người máy'),
+  ('IT4460', 'Phân tích yêu cầu phần mềm'),
+  ('IT4653', 'Học sâu và ứng dụng'),
+  ('IT4772', 'Xử lý ngôn ngữ tự nhiên'),
+  ('IT4788', 'Phát triển ứng dụng đa nền tảng'),
+  ('IT4906', 'Tính toán tiến hóa'),
+  ('EM3310', 'Mô phỏng hoạt động kinh doanh'),
+  ('EM3432', 'Quản trị chuỗi cung ứng'),
+  ('EM4218', 'Hệ thống thông tin quản lý')
+ON CONFLICT(code) DO NOTHING;
+
+-- Suggested matching topics (not official HUST syllabi)
+INSERT INTO public.topics(subject_id, name)
+SELECT s.id, t.name
+FROM public.subjects AS s
+JOIN (VALUES
+  ('MI1026', 'Hàm nhiều biến'),
+  ('MI1026', 'Tích phân'),
+  ('MI1026', 'Chuỗi số'),
+  ('MI2036', 'Biến ngẫu nhiên'),
+  ('MI2036', 'Kỳ vọng và phương sai'),
+  ('MI2036', 'Tín hiệu ngẫu nhiên'),
+  ('MI3180', 'Thống kê mô tả'),
+  ('MI3180', 'Kiểm định giả thuyết'),
+  ('MI3180', 'Thiết kế thí nghiệm'),
+  ('MI3042', 'Sai số tính toán'),
+  ('MI3042', 'Nội suy'),
+  ('MI3042', 'Giải phương trình số'),
+  ('MI3600', 'Phân tích dữ liệu'),
+  ('MI3600', 'Trực quan hóa dữ liệu'),
+  ('MI3600', 'Phân tích kinh doanh'),
+  ('IT2030', 'Viết báo cáo kỹ thuật'),
+  ('IT2030', 'Trình bày học thuật'),
+  ('IT2030', 'Thiết kế slide'),
+  ('IT3030', 'Bộ xử lý CPU'),
+  ('IT3030', 'Bộ nhớ đệm'),
+  ('IT3030', 'Tập lệnh máy'),
+  ('IT3070', 'Tiến trình và luồng'),
+  ('IT3070', 'Lập lịch CPU'),
+  ('IT3070', 'Bộ nhớ ảo'),
+  ('IT3080', 'Mô hình TCP/IP'),
+  ('IT3080', 'Địa chỉ IP và subnet'),
+  ('IT3080', 'TCP và UDP'),
+  ('IT3120', 'Use case'),
+  ('IT3120', 'Mô hình UML'),
+  ('IT3120', 'Thiết kế hệ thống'),
+  ('IT3180', 'Quy trình phát triển phần mềm'),
+  ('IT3180', 'Quản lý yêu cầu'),
+  ('IT3180', 'Kiểm thử phần mềm'),
+  ('IT4012', 'Mật mã học'),
+  ('IT4012', 'Xác thực'),
+  ('IT4012', 'Lỗ hổng bảo mật'),
+  ('IT4015', 'Nguyên tắc an toàn thông tin'),
+  ('IT4015', 'Các kiểu tấn công'),
+  ('IT4015', 'Biện pháp phòng vệ'),
+  ('IT4180', 'Phân tích từ vựng'),
+  ('IT4180', 'Phân tích cú pháp'),
+  ('IT4180', 'Cây cú pháp trừu tượng'),
+  ('IT4244', 'Lập kế hoạch dự án'),
+  ('IT4244', 'Agile và Scrum'),
+  ('IT4244', 'Quản lý rủi ro'),
+  ('IT4272', 'Tổ chức hệ thống máy tính'),
+  ('IT4272', 'Bộ nhớ và lưu trữ'),
+  ('IT4272', 'Giao tiếp phần cứng phần mềm'),
+  ('IT4440', 'Thiết kế giao diện'),
+  ('IT4440', 'Usability'),
+  ('IT4440', 'Đánh giá trải nghiệm người dùng'),
+  ('IT4460', 'Khảo sát yêu cầu'),
+  ('IT4460', 'User story'),
+  ('IT4460', 'Đặc tả yêu cầu'),
+  ('IT4653', 'Lan truyền ngược'),
+  ('IT4653', 'Mạng CNN'),
+  ('IT4653', 'Transformer'),
+  ('IT4772', 'Tiền xử lý văn bản'),
+  ('IT4772', 'Word embeddings'),
+  ('IT4772', 'Mô hình ngôn ngữ'),
+  ('IT4788', 'Kiến trúc ứng dụng'),
+  ('IT4788', 'Quản lý trạng thái'),
+  ('IT4788', 'Kiểm thử ứng dụng'),
+  ('IT4906', 'Giải thuật di truyền'),
+  ('IT4906', 'Đột biến và lai ghép'),
+  ('IT4906', 'Tối ưu hóa tiến hóa'),
+  ('EM3310', 'Mô phỏng Monte Carlo'),
+  ('EM3310', 'Mô phỏng sự kiện rời rạc'),
+  ('EM3310', 'Phân tích kịch bản'),
+  ('EM3432', 'Quản lý tồn kho'),
+  ('EM3432', 'Dự báo nhu cầu'),
+  ('EM3432', 'Logistics'),
+  ('EM4218', 'Hệ thống thông tin doanh nghiệp'),
+  ('EM4218', 'Hệ thống ERP'),
+  ('EM4218', 'Dữ liệu hỗ trợ ra quyết định')
+) AS t(code, name) ON t.code = s.code
+ON CONFLICT(subject_id, name) DO NOTHING;
+
+COMMIT;

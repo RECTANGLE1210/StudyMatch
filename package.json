@@ -12,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "format": "prettier --write src tests playwright.config.ts"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -31,6 +33,8 @@
     "tailwindcss": "^4.0.0",
     "@tailwindcss/vite": "^4.0.0",
     "vitest": "^4.0.0",
-    "@electric-sql/pglite": "^0.5.15"
+    "@electric-sql/pglite": "^0.5.15",
+    "@playwright/test": "^1.56.0",
+    "prettier": "^3.6.0"
   }
 }

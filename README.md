@@ -1,57 +1,52 @@
 # StudyMatch
 
-Nền tảng MVP ghép bạn học 1–1, giữ nguyên UI Figma Make phong cách matcha và coffee. Repository tập trung vào foundation; các màn hình prototype chưa phải tính năng backend hoàn chỉnh.
+Ứng dụng MVP ghép bạn học 1–1: Google OAuth, hồ sơ học tập, matching, lời mời, chat, lịch học, Study Room, tài liệu riêng tư, tiến độ và thông báo. UI được chuyển từ Figma Make StudyMatch, giữ CSS/tokens, sidebar, card, modal và bố cục responsive; dữ liệu hiển thị lấy từ Supabase, không có tài khoản hoặc hoạt động demo mặc định.
 
-## Bắt đầu
+## Chạy ứng dụng
 
-Yêu cầu Node.js >=22.12 (đã kiểm tra với 24.15), npm và trình duyệt hiện đại.
+Yêu cầu Node >=22.12, npm và trình duyệt hiện đại.
 
 ```powershell
-cd 'G:\My Drive\HUST\IT-E10\DMST\StudyMatch'
 npm ci
 Copy-Item .env.example .env.local
+# Điền project URL và publishable key thật trong .env.local
 npm run dev
 ```
 
-Máy hiện tại đã có dependencies và `.env.local` chỉ chứa `VITE_DEMO_MODE=true`, có thể chạy `npm run dev` ngay. Chế độ demo có nhãn rõ ràng, lưu dữ liệu trong memory và không xác thực/ghi dữ liệu thật. Production luôn tắt demo, kể cả khi biến này là `true`.
+Chưa có project Supabase thì app chỉ mở màn hình Login; không giả đăng nhập hoặc ghi dữ liệu. Làm theo [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) để tạo project mới, áp hai migrations theo thứ tự, seed catalog và bật Google OAuth. Không dùng service_role/secret key trong frontend. `.env.local` luôn bị ignore.
 
-Google Drive trên máy này từng gây `TAR_ENTRY_ERROR` khi npm giải nén trực tiếp. Nếu gặp lại, dùng lệnh đã kiểm tra:
+Nếu npm giải nén lỗi trên Google Drive, dùng:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/install-dependencies.ps1
 ```
 
-Script chạy `npm ci` ở thư mục tạm trên ổ local, copy dependencies về repository rồi dọn thư mục tạm. Không thay source hoặc commit dependencies.
+Script cài npm ci trên ổ local rồi copy dependencies về repo. Nếu Google Drive đang đồng bộ nhiều file, thao tác copy có thể chậm; build và kiểm thử cũng có thể chạy trên bản sao local giống hệt source.
 
-## Lệnh phát triển
+## Lệnh
 
-| Lệnh | Mục đích |
+| Lệnh | Công dụng |
 |---|---|
-| `npm run dev` | Vite dev server |
-| `npm run typecheck` | Kiểm tra TypeScript strict |
-| `npm run test` | Vitest: domain, cấu hình, PostgreSQL/RLS |
-| `npm run test:watch` | Theo dõi unit tests |
-| `npm run build` | TypeScript và Vite production build |
-| `npm run preview` | Xem production build tại local |
+| `npm run dev` | Vite development server |
+| `npm run typecheck` | TypeScript strict |
+| `npm run test` | Unit/domain và SQL/RLS tests bằng PGlite |
+| `npm run test:e2e` | Browser workflows qua HTTP transport chỉ dành cho tests |
+| `npm run build` | TypeScript và production build |
+| `npm run preview` | Xem production build |
+| `npm run format` | Prettier cho TypeScript/TSX |
 
-## Supabase
+E2E tự dùng Chrome nếu có ở vị trí chuẩn trên Windows. Có thể đặt CHROME_EXECUTABLE, hoặc chạy `npx playwright install chromium` trước tests trên máy chưa có browser. Fixtures/transport chỉ nằm trong tests, không được import hoặc bật trong app thật.
 
-Đặt `VITE_DEMO_MODE=false`, `VITE_SUPABASE_URL` và `VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...` trong `.env.local`. Không dùng secret/service_role key. Biến `VITE_*` được đưa vào bundle nên chỉ chứa thông tin công khai. Xem [hướng dẫn database](supabase/README.md) để áp dụng migration trên project mới và bật Google OAuth. Chưa thực hiện thao tác database từ xa.
+## Stack và kiến trúc
 
-## Công nghệ và kiến trúc
+React/TypeScript/Vite, Tailwind v4, React Router, Supabase Auth/PostgreSQL/Realtime/Storage, Vitest/PGlite và Playwright. Không có Express/FastAPI, Docker hoặc dịch vụ AI riêng. Feature modules tách UI, hooks/application services, domain thuần và data-access adapters/RPC. Xem [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-React, TypeScript, Vite, Tailwind CSS v4, React Router, Supabase và Vitest. Lucide React có sẵn để phát triển tiếp; icon SVG/emoji gốc vẫn được giữ. Chưa thêm TanStack Query vì hiện chưa có nhiều màn hình server-state cần cache.
+## Trạng thái
 
-`src/app` quản lý router/providers/guards. `src/features` chứa domain, services, hooks và repositories theo chức năng. `src/demo` cô lập prototype và mock data. Domain TypeScript không phụ thuộc React/Supabase; UI gọi hooks/repositories thay vì chứa SQL. Không có backend server riêng.
+Code UI và backend đã nối theo hợp đồng Supabase; kiểm thử local không thay thế kiểm thử Google OAuth, PostgREST, Realtime và Storage HTTP của project thật. Chưa có remote project được cung cấp, chưa áp migration từ xa và chưa deploy. [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) ghi rõ giới hạn.
 
-## Deploy
+MVP miễn phí; trang gói giữ layout Figma nhưng Sprint/Plus chưa phát hành, không có thanh toán hoặc fake-door metrics.
 
-Vercel: Root Directory `StudyMatch` nếu import repository cha; nếu import repository này thì để root mặc định. Build `npm run build`, output `dist`. `vercel.json` có SPA fallback. Thêm hai biến Supabase công khai trong Vercel và origin deploy vào allowlist OAuth của Supabase. Không cần hardcode localhost; OAuth dùng origin hiện tại. Chưa deploy.
+Vercel dùng build `npm run build`, output `dist`; vercel.json có SPA fallback. Đặt VITE_SUPABASE_URL và VITE_SUPABASE_PUBLISHABLE_KEY trong Vercel, thêm domain/login vào OAuth redirect allowlist. Không hardcode localhost trong code OAuth production.
 
-## Tài liệu
-
-- [Kiến trúc](docs/ARCHITECTURE.md), [database](docs/DATABASE.md), [phát triển](docs/DEVELOPMENT.md).
-- [Migration Figma](docs/FIGMA_MIGRATION.md), [trạng thái thực tế](docs/IMPLEMENTATION_STATUS.md).
-- [Kết quả kiểm tra](docs/VERIFICATION.md), [cây repository thực tế](docs/REPOSITORY_TREE.md).
-
-Git được khởi tạo ở chính `StudyMatch`; thư mục `DMST` trước đó chưa có repository. Chưa commit, tạo remote hoặc push. Nếu sau này đặt `DMST` trong Git, chọn theo dõi riêng StudyMatch hoặc hợp nhất lịch sử trước, không giữ hai repository chồng nhau ngoài ý muốn.
+Tài liệu: [Thiết lập Supabase](docs/SUPABASE_SETUP.md), [luật sản phẩm](docs/PRODUCT_RULES.md), [database](docs/DATABASE.md), [phát triển](docs/DEVELOPMENT.md), [migration Figma](docs/FIGMA_MIGRATION.md), [verification](docs/VERIFICATION.md).

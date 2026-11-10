@@ -1,28 +1,42 @@
-# Kết quả kiểm tra — 04/11/2026
+# Kết quả kiểm tra — 10/11/2026
 
-Tất cả kết quả cuối được chạy trực tiếp tại `G:\My Drive\HUST\IT-E10\DMST\StudyMatch`, không chỉ trên bản copy tạm.
+Mã trong `src`, `tests` và `supabase` được đối chiếu byte-for-byte với bản sao local đã chạy kiểm thử tại `product-verification-nj7qhs5w`. Google Drive có thể làm thao tác npm chậm; bản sao local sử dụng cùng package-lock và dependencies. Typecheck, 82 tests và production build cũng đã chạy lại thành công trực tiếp trong repo trên ổ G. Không có project Supabase thật hoặc deployment được tạo trong lần triển khai này.
 
-| Kiểm tra | Kết quả thực tế |
+| Kiểm tra trên bản sao local | Kết quả |
 |---|---|
-| Cài dependencies | Thành công, 86 packages qua npm ci trong local temp + copy về workspace |
-| Script workaround | `scripts/install-dependencies.ps1` đã chạy thành công end-to-end và dọn temp riêng |
-| Dependency tree | `npm ls --depth=0` thành công, không missing dependencies |
 | TypeScript | `npm run typecheck` thành công |
-| Unit/database tests | `npm run test`: 61 tests / 7 files passed |
+| Unit/domain/database | `npm run test`: **82 tests / 9 files passed**, gồm 26 SQL/authorization tests |
 | Production build | `npm run build` thành công, Vite 8.3.5 |
-| Dev server | `npm run dev -- --host 127.0.0.1 --port 5174 --strictPort` ready; browser tải app thành công |
-| Production preview | Server port 4174 hoạt động; unauthenticated route chuyển về /login |
-| Browser desktop/mobile | Chrome headless, viewport 1440×1000 và 390×844; 10 URL, sidebar, 404, demo onboarding entry |
-| Interactions | Pomodoro 25/50, pause, reset; gửi/hủy invitation demo thành công |
-| Production safeguards | Không có demo badge/entry; OAuth khi thiếu cấu hình hiển thị lỗi rõ ràng |
-| Browser page errors | 0 |
-| Source preservation | Hash của cả 6 source gốc không đổi; library.tsx/index.css/vite-env.d.ts copy nguyên byte |
-| Git exclusions | .env.local, node_modules, dist được ignore; không có remote |
+| Browser workflows | `npm run test:e2e`: **3 tests passed**, Chrome desktop/mobile |
+| Browser page errors | 0 trong luồng hai người dùng |
+| Figma CSS | `src/styles/index.css` nguyên byte so với source Figma |
+| Runtime demo | Đã bỏ src/demo, demo mode và default users/activity |
 
-Trước khi có cấu hình, source gốc không có package.json nên không thể chạy npm trực tiếp. Đã dựng baseline nguyên bản trong thư mục tạm cùng React/Vite/Tailwind config và build thành công. Browser verification kiểm tra bản ứng dụng đã tổ chức lại; không tuyên bố pixel-diff tự động với Figma.
+## Những gì đã được kiểm tra
 
-Lỗi ban đầu: npm giải nén trực tiếp trên Google Drive tạo TAR_ENTRY_ERROR; bản dependency chưa hoàn chỉnh từng khiến tsc không chạy hoặc thiếu vite/client. Đã giải quyết bằng cài local rồi robocopy /MT:32, sau đó chạy lại toàn bộ kiểm tra tại repository thật thành công. Workaround được lưu trong scripts/ để dùng khi cài mới.
+- Anonymous vào trang được bảo vệ sẽ về Login, không nhận danh tính demo.
+- Hai tài khoản test gửi/chấp nhận lời mời, chat, đề xuất/chấp nhận lịch, xác nhận attendance, bắt đầu buổi học, sửa checklist/Meet, upload PDF và mở signed preview, hoàn thành, gửi feedback và xem tiến độ.
+- Onboarding năm bước lưu profile thật qua SQL local và giữ dữ liệu sau refresh; chỉnh sửa profile, cảnh báo thay đổi chưa lưu và layout mobile.
+- Database chạy cả hai migrations với role authenticated/anon trong PGlite: actor spoofing, outsider access, RLS, private storage metadata, profile atomic rollback, block/report, unread, lifecycle/deadline và progress.
+- Matching theo trọng số đã chốt, timezone/DST, timer và lựa chọn session persistence.
 
-PGlite chạy migration và 15 tests SQL/authorization bằng role authenticated/anon. Schema auth/storage tối thiểu được dựng riêng trong test, không tác động remote Supabase. Chưa kiểm tra OAuth provider, PostgREST API, Storage HTTP/signed URL, Realtime delivery hoặc Vercel deploy thật.
+Các fixture identities, auth tokens và HTTP transport nằm riêng trong tests. Transport thực thi PostgreSQL/RLS local nhưng mô phỏng giao thức Auth/Storage; không được import vào app production và không chứng minh tích hợp Google/Supabase từ xa đã hoạt động.
 
-Ảnh đã xem thủ công: [desktop](verification/desktop.png), [mobile](verification/mobile.png). Thông tin browser: [browser.json](verification/browser.json). Các dev/preview server dùng để kiểm tra được dừng sau verification.
+## Giới hạn xác minh
+
+Chưa kiểm tra Google OAuth provider, Supabase PostgREST thực, Realtime delivery, Storage HTTP/signed URLs thực hoặc deploy Vercel. Làm theo [SUPABASE_SETUP.md](SUPABASE_SETUP.md), áp hai migrations vào project mới rồi chạy checklist hai tài khoản và outsider. Không dùng service_role trong frontend.
+
+Figma Make không hỗ trợ screenshot qua MCP ở file này. Code nguồn được đọc trực tiếp; CSS và favicon giữ nguyên, markup được nối dữ liệu động. Chưa có automated pixel-diff với Figma. [Ảnh mobile hiện tại](verification/live-mobile.png) dùng **dữ liệu fixture kiểm thử**, không phải dữ liệu mặc định sản phẩm; banner mất kết nối trong ảnh do transport local không cung cấp Realtime.
+
+Các file `verification/desktop.png`, `mobile.png`, `browser.json` và `source-manifest.json` là bằng chứng lịch sử của bước khởi tạo 04/11, không mô tả dữ liệu hoặc giao diện runtime hiện tại. [live-results.json](verification/live-results.json) ghi kết quả kiểm thử lần này.
+
+## Chạy lại
+
+```powershell
+npm run typecheck
+npm run test
+npm run test:e2e
+npm run build
+```
+
+E2E dùng Chrome cài sẵn trên Windows hoặc CHROME_EXECUTABLE; máy chưa có browser có thể chạy `npx playwright install chromium`. Không cần credentials thật để chạy tests local.

@@ -7,5 +7,10 @@ export function LiveLogin() {
   const { session, loading, error } = useAuth()
   if (loading) return <Loading />
   if (session) return <Navigate to="/" replace />
-  return <>{error && <p role="alert">{error}</p>}<Login go={() => {}} onSignIn={signInWithGoogle} /></>
+  return (
+    <>
+      {error && <p role="alert">{error}</p>}
+      <Login onSignIn={signInWithGoogle} />
+    </>
+  )
 }

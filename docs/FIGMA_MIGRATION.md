@@ -1,22 +1,20 @@
-# Figma Make migration
+# Figma → StudyMatch product
 
-Audit ban đầu: DMST chỉ có `App.tsx`, `profile.tsx`, `library.tsx`, `main.tsx`, `index.css`, `vite-env.d.ts`. Không có package.json, src/, public/, node_modules, Git repository hay thư mục StudyMatch. Không có Figma link hoặc file assets riêng.
+Nguồn chuẩn: https://www.figma.com/make/LT1BBnuJWkxsfsO3sLGAoZ/StudyMatch . Đã đọc trực tiếp App.tsx/profile.tsx/library.tsx/index.css và đối chiếu lại ngày 10/11/2026; bốn file nguồn Figma chưa đổi so với export ban đầu. Figma Make không hỗ trợ screenshot qua node tool; visual reference được render từ source Figma ở cùng viewport với app.
 
-Các screen được xác nhận: Login, Onboarding, Home, Smart Match, Chat, Sessions, Room, Library, Progress, Pricing và Profile; có modal/public profile, notifications và responsive sidebar/mobile navigation. Navigation trước đây là `useState<Scr>`. State nằm trong React state/ProfileContext; data, catalog, login, message, upload và progress đều mô phỏng.
-
-| Source gốc trong DMST | Đích và thay đổi |
+| Source Figma | Triển khai hiện tại |
 |---|---|
-| App.tsx | Copy thành src/demo/App.tsx; thêm React Router adapter, thay timer bằng hook domain; tách Login view tái sử dụng cho OAuth thật |
-| profile.tsx | Copy thành src/demo/profile.tsx; giữ profile UI, catalog/mock provider; scorePeer gọi domain matching qua adapter |
-| library.tsx | Copy nguyên byte thành src/demo/library.tsx |
-| index.css | Copy nguyên byte thành src/styles/index.css; giữ toàn bộ tokens, fonts, layout và responsive rules |
-| main.tsx | Copy rồi đổi entry sang src/app/App.tsx, styles path và ErrorBoundary |
-| vite-env.d.ts | Copy nguyên byte thành src/vite-env.d.ts |
+| src/index.css | src/styles/index.css, giữ nguyên byte: fonts, brand colors, layout/responsive tokens |
+| App.tsx sidebar/mobile shell | components/layout/AppLayout.tsx, bindings bằng profile/router/workspace thật |
+| App.tsx Login | features/auth/components/Login.tsx, giữ đồ họa/SVG/layout và Google OAuth thật |
+| App.tsx Home/Match/Chat/Sessions/Room/Progress/Pricing | Các feature page tương ứng; giữ card/modal/classes, thay mock state bằng backend |
+| profile.tsx | features/profile/components/ProfileScreens.tsx + ProfileProvider/profileService; giữ editors/năm bước, thay default user/catalog/save/avatar giả |
+| library.tsx | features/documents/components/LibraryScreen.tsx; upload/link/preview/attach/delete private theo session |
+| public/favicon.svg | Copy asset SVG gốc, không vẽ lại |
+| main.tsx / index.html / configs | Dùng bootstrap, router, env, tests và Vercel config của repository; không copy Vite platform code nội bộ .figma |
 
-Ở lần migration đầu, giữ nguyên cả sáu source gốc ở DMST. Sau đó, theo yêu cầu dọn workspace của người dùng, đã đối chiếu hash với manifest, xác nhận các bản trong StudyMatch đầy đủ và xóa sáu file trùng ở DMST; source hiện nằm trong repository StudyMatch. SVG inline, emoji và font imports được giữ. Không thay thư viện UI hoặc thiết kế. Password fields gốc chỉ giữ phần trình bày và được disable; Google OAuth là auth thật duy nhất. Demo entry không còn random failure.
+Source cũ ở src/demo và alternate ProfileForm đã được thay thế, không giữ runtime mock fallback. User/session/message/progress mặc định bị loại bỏ; các fixtures chỉ dùng trong tests. source-manifest.json giữ hash lịch sử của sáu file export ban đầu trước khi dọn file trùng ngoài repo.
 
-Thêm cấu hình React/Vite/Tailwind v4 vì source chưa có manifest. Baseline nguyên bản đã được dựng trong thư mục kiểm tra local với cấu hình này và build thành công; không có baseline npm command trước khi khôi phục cấu hình.
+Thay đổi có chủ đích theo yêu cầu: actual/empty/loading/error states, real matching scores và thứ tự, validated timezone/session controls, private session picker cho tài liệu và feedback rating. Email/password không phải custom auth; Google OAuth là phương thức duy nhất. Remember điều khiển persistence thật. Pricing giữ bố cục, bỏ các số liệu/giá/ý định mua giả; Sprint/Plus chưa phát hành.
 
-Mock vẫn nằm cùng UI prototype trong src/demo để giảm rủi ro rewrite. Mọi đường vào demo đều được gate bằng DEV + VITE_DEMO_MODE=true. Production không có mock fallback. Phần UI chưa tích hợp được hiển thị đầy đủ trong demo; production ghi rõ trạng thái chưa nối dữ liệu.
-
-Đã kiểm tra browser 10 URL chính/chi tiết, sidebar, onboarding entry, trang 404, desktop và mobile; không có page error. Ảnh kiểm tra tại `docs/verification/desktop.png` và `mobile.png`. Hash lịch sử của source gốc trước khi dọn file trùng được lưu trong `source-manifest.json`.
+Các PNG được liệt kê trong Make resource manifest không được source UI tham chiếu; UI hiện dùng SVG inline/emoji và avatar từ user data. Không thay ảnh tĩnh bằng placeholder hoặc thêm icon library khác. Các ảnh verification cũ là snapshot prototype lịch sử, không phải dữ liệu mặc định của app hiện tại.

@@ -1,9 +1,18 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import { useLearningProfile } from '../../features/profile/hooks/useLearningProfile'
+import { useProfile } from '../../features/profile/hooks/ProfileProvider'
 import { Loading } from '../../components/shared/Loading'
+import { ErrorNotice } from '../../components/shared/Feedback'
 export function OnboardingGuard() {
-  const { profile, loading, error, reload } = useLearningProfile()
+  const { p, loading, error, reload } = useProfile()
   if (loading) return <Loading />
-  if (error) return <div className="card p-6 m-6" role="alert">{error}<button className="btn btn-o" onClick={reload}>Thử lại</button></div>
-  return profile?.onboarding_completed ? <Outlet /> : <Navigate to="/onboarding" replace />
+  if (error && !p.onboardingCompleted)
+    return (
+      <ErrorNotice
+        error={error}
+        retry={() => {
+          void reload()
+        }}
+      />
+    )
+  return p.onboardingCompleted ? <Outlet /> : <Navigate to="/onboarding" replace />
 }
