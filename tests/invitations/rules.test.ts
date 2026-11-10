@@ -1,0 +1,4 @@
+import { expect, it } from 'vitest'
+import { assertInvitation, canChangeInvitation } from '../../src/features/invitations/services/invitationRules'
+it('rejects self-invitations, blocks and duplicate active invitations', () => { expect(() => assertInvitation('a', 'a', false, false)).toThrow(); expect(() => assertInvitation('a', 'b', true, false)).toThrow(); expect(() => assertInvitation('a', 'b', false, true)).toThrow(); expect(() => assertInvitation('a', 'b', false, false)).not.toThrow() })
+it('allows only participant-specific pending transitions', () => { expect(canChangeInvitation('pending', 'accepted', 'recipient')).toBe(true); expect(canChangeInvitation('pending', 'accepted', 'sender')).toBe(false); expect(canChangeInvitation('pending', 'cancelled', 'sender')).toBe(true); expect(canChangeInvitation('accepted', 'cancelled', 'sender')).toBe(false) })

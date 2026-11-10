@@ -1,0 +1,36 @@
+{
+  "date": "2026-11-04",
+  "source": "G:/My Drive/HUST/IT-E10/DMST/StudyMatch",
+  "screens": [
+    "/",
+    "/match",
+    "/messages",
+    "/messages/demo-conversation",
+    "/sessions",
+    "/sessions/demo-session",
+    "/progress",
+    "/profile",
+    "/library",
+    "/pricing"
+  ],
+  "sidebarNavigation": "passed",
+  "desktop": [
+    1440,
+    1000
+  ],
+  "mobile": [
+    390,
+    844
+  ],
+  "notFound": "passed",
+  "productionGuard": "passed",
+  "missingConfigError": "passed",
+  "pageErrors": [],
+  "interactions": {
+    "pomodoro25": "passed",
+    "pause": "passed",
+    "pomodoro50": "passed",
+    "reset": "passed",
+    "demoInvitation": "passed"
+  }
+}
