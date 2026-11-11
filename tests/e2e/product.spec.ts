@@ -282,3 +282,49 @@ for (const legacyOnly of [true, false]) {
     }
   })
 }
+
+test('profile subject editor stays above cards and saves on desktop and mobile', async ({ browser }) => {
+  const context = await backend.context(browser, B)
+  try {
+    const subject = (await backend.db.query<{ id: string }>('select id from public.subjects limit 1')).rows[0]
+      .id
+    // A tall editor must scroll within the viewport, independently of the cards behind it.
+    for (let i = 0; i < 28; i++)
+      await backend.db.query('insert into public.topics(subject_id,name) values($1,$2)', [
+        subject,
+        `Chủ đề mở rộng ${i}`,
+      ])
+    const page = await context.newPage()
+    for (const [viewport, level] of [
+      [{ width: 1440, height: 900 }, 'Nâng cao'],
+      [{ width: 390, height: 844 }, 'Trung bình'],
+    ] as const) {
+      await page.setViewportSize(viewport)
+      await page.goto('/profile')
+      await page.getByRole('button', { name: /Toán kiểm thử/ }).click()
+      const dialog = page.getByRole('dialog')
+      await expect(dialog).toBeVisible()
+      expect(await dialog.evaluate((el) => el.parentElement?.parentElement === document.body)).toBe(true)
+      await dialog.getByRole('button', { name: level, exact: true }).click()
+      const save = dialog.getByRole('button', { name: 'Lưu', exact: true })
+      await save.scrollIntoViewIfNeeded()
+      expect(
+        await save.evaluate((el) => {
+          const rect = el.getBoundingClientRect()
+          return el.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2))
+        })
+      ).toBe(true)
+      await save.click()
+      await expect(dialog).toHaveCount(0)
+      const saved = await backend.as(B, (tx) =>
+        tx.query<{ value: { subjects: { level: string }[] } }>(
+          'select public.get_profile_snapshot($1) value',
+          [B]
+        )
+      )
+      expect(saved.rows[0].value.subjects[0].level).toBe(level)
+    }
+  } finally {
+    await context.close()
+  }
+})

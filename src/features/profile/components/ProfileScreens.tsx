@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useProfile } from '../hooks/ProfileProvider'
 import { profileService } from '../services/profileService'
 import { catalogRepository } from '../../subjects/repositories/catalogRepository'
@@ -42,18 +43,21 @@ function useDirty(key: string, value: boolean) {
 
 /* ---------- small UI ---------- */
 function Modal({ children, onClose }: { children: ReactNode; onClose: () => void }) {
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 bg-espresso/40 flex items-end md:items-center justify-center md:p-4"
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
         className="card pop p-5 md:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto !rounded-b-none md:!rounded-b-[24px]"
         onClick={(e) => e.stopPropagation()}
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 export function Avatar({ src, name, size = 44 }: { src?: string | null; name: string; size?: number }) {
