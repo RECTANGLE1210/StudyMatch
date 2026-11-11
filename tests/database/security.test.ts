@@ -28,6 +28,9 @@ beforeAll(async () => {
     readFileSync(new URL('../../supabase/migrations/202611100001_product.sql', import.meta.url), 'utf8')
   )
   await db.exec(
+    readFileSync(new URL('../../supabase/migrations/202611110001_room_sync.sql', import.meta.url), 'utf8')
+  )
+  await db.exec(
     `insert into auth.users values('${A}'),('${B}'),('${C}'); insert into public.subjects(id,code,name) values('${SUBJECT}','MATH','Math');`
   )
 }, 30_000)
@@ -525,6 +528,122 @@ describe('migrated PostgreSQL authorization', () => {
       db.query(
         `insert into public.session_goals(session_id,title) values('${SESSION}','Late fabricated goal')`
       )
+    ).rejects.toThrow()
+  })
+  it('shares server-owned Pomodoro controls between both participants', async () => {
+    await db.query(
+      `update public.study_sessions set status='in_progress',starts_at=now()-interval '2 minutes',started_at=now()-interval '2 minutes' where id='${SESSION}'`
+    )
+    await asUser(A)
+    await db.query(`select public.control_pomodoro('${SESSION}','start',0)`)
+    await asUser(B)
+    const running = (await db.query<{ value: any }>(`select public.get_room('${SESSION}') value`)).rows[0]
+      .value
+    expect(running.session.pomodoro_revision).toBe(1)
+    expect(running.session.pomodoro_started_at).not.toBeNull()
+    expect(Number.isFinite(Date.parse(running.serverNow))).toBe(true)
+    await db.exec('reset role')
+    await db.query(
+      `update public.study_sessions set pomodoro_started_at=clock_timestamp()-interval '65 seconds' where id='${SESSION}'`
+    )
+    await asUser(B)
+    await db.query(`select public.control_pomodoro('${SESSION}','pause',1)`)
+    await asUser(A)
+    const paused = (await db.query<{ value: any }>(`select public.get_room('${SESSION}') value`)).rows[0]
+      .value.session
+    expect(paused.pomodoro_started_at).toBeNull()
+    expect(paused.pomodoro_elapsed_ms).toBeGreaterThanOrEqual(65000)
+    expect(paused.pomodoro_elapsed_ms).toBeLessThan(66000)
+    await db.query(`select public.control_pomodoro('${SESSION}','start',2)`)
+    const resumed = (await db.query<{ value: any }>(`select public.get_room('${SESSION}') value`)).rows[0]
+      .value.session
+    expect(resumed.pomodoro_elapsed_ms).toBe(paused.pomodoro_elapsed_ms)
+    expect(resumed.pomodoro_revision).toBe(3)
+  })
+  it('resets shared duration and rejects stale or forged timer controls', async () => {
+    await db.query(
+      `update public.study_sessions set status='in_progress',starts_at=now()-interval '1 minute',started_at=now()-interval '1 minute' where id='${SESSION}'`
+    )
+    await asUser(B)
+    await db.query(`select public.control_pomodoro('${SESSION}','reset',0,50)`)
+    await asUser(A)
+    await expect(db.query(`select public.control_pomodoro('${SESSION}','start',0)`)).rejects.toThrow()
+    await expect(db.query(`select public.control_pomodoro('${SESSION}','reset',1,99)`)).rejects.toThrow()
+    await expect(db.query(`select public.control_pomodoro('${SESSION}','start',null)`)).rejects.toThrow()
+    await expect(db.query(`select public.control_pomodoro('${SESSION}','start',1,25)`)).rejects.toThrow()
+    await expect(
+      db.query(`update public.study_sessions set pomodoro_elapsed_ms=100 where id='${SESSION}'`)
+    ).rejects.toThrow()
+    await db.query(`select public.control_pomodoro('${SESSION}','start',1)`)
+    await db.query(`select public.control_pomodoro('${SESSION}','reset',2,25)`)
+    const timer = (await db.query<{ value: any }>(`select public.get_room('${SESSION}') value`)).rows[0].value
+      .session
+    expect(timer).toMatchObject({
+      pomodoro_minutes: 25,
+      pomodoro_elapsed_ms: 0,
+      pomodoro_started_at: null,
+      pomodoro_revision: 3,
+    })
+  })
+  it('denies scheduled, outsider and anonymous Pomodoro controls', async () => {
+    await asUser(A)
+    await expect(db.query(`select public.control_pomodoro('${SESSION}','start',0)`)).rejects.toThrow()
+    await asUser(C)
+    await expect(db.query(`select public.control_pomodoro('${SESSION}','reset',0,50)`)).rejects.toThrow()
+    await expect(db.query(`select public.get_room('${SESSION}')`)).rejects.toThrow()
+    await db.exec('set role anon')
+    await expect(db.query(`select public.control_pomodoro('${SESSION}','start',0)`)).rejects.toThrow()
+  })
+  it('caps an expired Pomodoro and freezes it when the session is completed', async () => {
+    await db.query(
+      `update public.study_sessions set status='in_progress',starts_at=now()-interval '2 minutes',ends_at=now()-interval '1 minute',started_at=now()-interval '2 minutes',pomodoro_started_at=now()-interval '2 minutes' where id='${SESSION}'`
+    )
+    await asUser(A)
+    await expect(db.query(`select public.control_pomodoro('${SESSION}','pause',0)`)).rejects.toThrow()
+    const ended = (await db.query<{ value: any }>(`select public.get_room('${SESSION}') value`)).rows[0].value
+      .session
+    expect(ended).toMatchObject({
+      status: 'completed',
+      pomodoro_started_at: null,
+      pomodoro_elapsed_ms: 60000,
+    })
+    await expect(db.query(`select public.control_pomodoro('${SESSION}','reset',1,25)`)).rejects.toThrow()
+  })
+  it('requires reset after Pomodoro expiry and freezes a cancelled timer', async () => {
+    await db.query(
+      `update public.study_sessions set status='in_progress',starts_at=now()-interval '30 minutes',started_at=now()-interval '30 minutes',pomodoro_elapsed_ms=1500000 where id='${SESSION}'`
+    )
+    await asUser(A)
+    await expect(db.query(`select public.control_pomodoro('${SESSION}','start',0)`)).rejects.toThrow()
+    await db.query(`select public.control_pomodoro('${SESSION}','reset',0,50)`)
+    await db.query(`select public.control_pomodoro('${SESSION}','start',1)`)
+    await asUser(B)
+    await db.query(`select public.transition_session('${SESSION}','cancelled')`)
+    const cancelled = (await db.query<{ value: any }>(`select public.get_room('${SESSION}') value`)).rows[0]
+      .value.session
+    expect(cancelled).toMatchObject({ status: 'cancelled', pomodoro_started_at: null, pomodoro_revision: 3 })
+  })
+  it('persists Meet links for both participants and prevents outsider or terminal edits', async () => {
+    await asUser(A)
+    await db.query(`select public.set_meet_link('${SESSION}','https://meet.google.com/abc-defg-hij')`)
+    await asUser(B)
+    const mine = (await db.query<{ value: any }>(`select public.get_room('${SESSION}') value`)).rows[0].value
+      .session
+    expect(mine.meet_link).toBe('https://meet.google.com/abc-defg-hij')
+    await db.query(`select public.set_meet_link('${SESSION}','https://meet.google.com/xyz-abcd-efg')`)
+    await asUser(A)
+    expect(
+      (await db.query<{ value: any }>(`select public.get_room('${SESSION}') value`)).rows[0].value.session
+        .meet_link
+    ).toBe('https://meet.google.com/xyz-abcd-efg')
+    await asUser(C)
+    await expect(
+      db.query(`select public.set_meet_link('${SESSION}','https://meet.google.com/aaa-bbbb-ccc')`)
+    ).rejects.toThrow()
+    await asUser(A)
+    await db.query(`select public.transition_session('${SESSION}','cancelled')`)
+    await expect(
+      db.query(`select public.set_meet_link('${SESSION}','https://meet.google.com/aaa-bbbb-ccc')`)
     ).rejects.toThrow()
   })
 })

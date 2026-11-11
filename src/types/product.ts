@@ -65,6 +65,10 @@ export interface SessionView {
   started_at: string | null
   completed_at: string | null
   meet_link: string | null
+  pomodoro_minutes: 25 | 50
+  pomodoro_elapsed_ms: number
+  pomodoro_started_at: string | null
+  pomodoro_revision: number
   subjectName: string
   creator: ProfileView | null
   partner: ProfileView | null
@@ -124,7 +128,15 @@ export interface GoalView {
   completed: boolean
   created_at: string
 }
+export interface SharedPomodoro {
+  duration_minutes: 25 | 50
+  elapsed_ms: number
+  started_at: string | null
+  revision: number
+}
 export interface RoomData {
+  roomSync?: { eligible: boolean; ready: boolean; timer: SharedPomodoro | null }
+  serverNow?: string
   session: SessionView
   goals: GoalView[]
   resources: ResourceView[]

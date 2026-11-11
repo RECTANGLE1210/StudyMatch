@@ -25,8 +25,9 @@ export function RoomPage() {
     id = sessionId ?? candidate?.id ?? '',
     query = useRoom(id),
     room = query.room,
-    session = data?.sessions.find((s) => s.id === id) ?? room?.session
-  const timer = usePomodoro(),
+    workspaceSession = data?.sessions.find((s) => s.id === id),
+    session = room?.session ?? workspaceSession
+  const timer = usePomodoro(session, query.clock, room?.roomSync),
     [goal, setGoal] = useState(''),
     [meet, setMeet] = useState(''),
     [rating, setRating] = useState(0),
@@ -71,7 +72,10 @@ export function RoomPage() {
         />
       </>
     )
-  const peer = session.creator_id === p.id ? session.partner : session.creator,
+  const peer =
+      session.creator_id === p.id
+        ? (workspaceSession?.partner ?? session.partner)
+        : (workspaceSession?.creator ?? session.creator),
     editable = ['proposed', 'scheduled', 'in_progress'].includes(session.status),
     attended = session.attendance.includes(p.id),
     both = session.attendance.length === 2,
@@ -81,6 +85,22 @@ export function RoomPage() {
     String(Math.floor(timer.secondsLeft / 60)).padStart(2, '0') +
     ':' +
     String(timer.secondsLeft % 60).padStart(2, '0')
+  const controlTimer = (command: 'start' | 'pause' | 'reset', minutes?: 25 | 50) => {
+    if (timer.waiting) return
+    if (!timer.shared) {
+      timer.controlLocal(command, minutes)
+      return
+    }
+    void action(async () => {
+      await rpc('control_pomodoro_v2', {
+        session: id,
+        command,
+        expected_revision: room.roomSync!.timer!.revision,
+        minutes: minutes ?? null,
+      })
+      await query.reload()
+    })
+  }
   const feedback = async (next?: string) => {
     if (rating < 1) return
     if (await action(() => roomRepository.feedback(id, rating, comment), 'Đã lưu phản hồi buổi học')) {
@@ -185,18 +205,41 @@ export function RoomPage() {
                 <button
                   key={n}
                   className={`chip ${timer.mode === n ? 'on' : ''}`}
-                  onClick={() => timer.reset(n)}
+                  disabled={busy || timer.waiting}
+                  onClick={() => controlTimer('reset', n)}
                 >
                   {n} phút
                 </button>
               ))}
             </div>
-            <div className="text-6xl font-extrabold text-forest tabular-nums">{remaining}</div>
+            <div
+              role="timer"
+              aria-label={timer.shared ? 'Pomodoro chung' : 'Pomodoro cá nhân'}
+              className="text-6xl font-extrabold text-forest tabular-nums"
+            >
+              {remaining}
+            </div>
+            {timer.waiting && (
+              <p role="status" className="text-xs mt-3">
+                Chờ bạn học mở phòng bằng phiên bản mới để dùng Pomodoro chung.
+              </p>
+            )}
+            {!timer.shared && !timer.waiting && (
+              <p className="text-xs mt-3">Buổi học này giữ Pomodoro cá nhân.</p>
+            )}
             <div className="flex justify-center gap-2 mt-4">
-              <button className="btn btn-p" disabled={timer.secondsLeft === 0} onClick={timer.toggle}>
+              <button
+                className="btn btn-p"
+                disabled={busy || timer.waiting || timer.secondsLeft === 0}
+                onClick={() => controlTimer(timer.running ? 'pause' : 'start')}
+              >
                 {timer.running ? 'Tạm dừng' : 'Bắt đầu'}
               </button>
-              <button className="btn btn-o" onClick={() => timer.reset()}>
+              <button
+                className="btn btn-o"
+                disabled={busy || timer.waiting}
+                onClick={() => controlTimer('reset')}
+              >
                 Đặt lại
               </button>
             </div>

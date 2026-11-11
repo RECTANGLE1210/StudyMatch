@@ -10,7 +10,7 @@ Phạm vi đã chốt: toàn bộ MVP, giữ thiết kế Figma và thay mock da
 | Invitations/Block/Report | Pending/accept/reject/cancel, duplicates/self/block/actor rules, privacy controls | SQL authorization + two-user browser flow |
 | Chat | Conversations thật, cursor history, sending, unread, Realtime cleanup/reconnect/dedup | SQL/browser persistence; WebSocket delivery remote chưa kiểm tra |
 | Scheduling | Propose/topic/goal, confirm/reject, reschedule/cancel, UTC/state rules | SQL/browser flow; reconcile khi user truy cập, chưa có cron |
-| Study Room | ID access, attendance, Pomodoro25/50, goals, Meet, complete/feedback | SQL/browser workflow; timer local, progress theo server clock |
+| Study Room | ID access, attendance, Pomodoro25/50, goals, Meet, complete/feedback | Shared server timer + Meet, room Realtime/polling; regression hai browser; rollout v2 mặc định tắt, giữ buổi cũ; xem ROOM_SYNC.md để áp riêng migration 002 và bật cờ |
 | Documents | Session-scoped library, file/link/Quiz, private previews/downloads, attach/delete | SQL/storage policies + browser upload/sign/preview qua test transport; remote Storage chưa kiểm tra |
 | Progress | Time/count/partners/goals/history/chart từ actual records | Unit/SQL/browser aggregate checks |
 | Notifications | Transactional rows, real bell, owner reads và unread total | SQL/browser checks; remote Realtime chưa kiểm tra |

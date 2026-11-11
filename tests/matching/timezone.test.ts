@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { localDateTimeToUtc, normalizeWeeklyAvailability } from '../../src/features/matching/domain/timezone'
+import {
+  localDateTimeToUtc,
+  normalizeWeeklyAvailability,
+  overlappingAvailabilitySlots,
+} from '../../src/features/matching/domain/timezone'
 import { availabilityOverlap } from '../../src/features/matching/domain/matching'
 describe('timezone-aware matching and scheduling', () => {
   it('converts Vietnam local time to UTC', () => {
@@ -50,5 +54,45 @@ describe('timezone-aware matching and scheduling', () => {
       )
     ).toEqual([{ day: 0, start: 1080, end: 1260 }])
     expect(() => normalizeWeeklyAvailability([{ day: 7, start: 0, end: 60 }], 'UTC')).toThrow()
+  })
+  it('highlights individual shared slots even when the full schedules differ', () => {
+    const monday = { day: 1, start: 1080, end: 1260 }
+    const tuesday = { day: 2, start: 1080, end: 1260 }
+    expect(
+      overlappingAvailabilitySlots([monday], 'Asia/Ho_Chi_Minh', [monday, tuesday], 'Asia/Ho_Chi_Minh')
+    ).toEqual(['T2-Tối'])
+  })
+  it('recognizes timezone aliases and highlights partial real overlaps', () => {
+    const day = new Date('2026-11-09T00:00:00Z')
+    expect(
+      overlappingAvailabilitySlots(
+        [{ day: 1, start: 1080, end: 1260 }],
+        'Asia/Ho_Chi_Minh',
+        [
+          { day: 1, start: 1080, end: 1260 },
+          { day: 2, start: 1080, end: 1260 },
+        ],
+        'Asia/Saigon',
+        day
+      )
+    ).toEqual(['T2-Tối'])
+    expect(
+      overlappingAvailabilitySlots(
+        [{ day: 1, start: 480, end: 660 }],
+        'UTC',
+        [{ day: 1, start: 780, end: 960 }],
+        'Asia/Ho_Chi_Minh',
+        day
+      )
+    ).toEqual(['T2-Chiều'])
+    expect(
+      overlappingAvailabilitySlots(
+        [{ day: 1, start: 300, end: 360 }],
+        'UTC',
+        [{ day: 1, start: 780, end: 960 }],
+        'Asia/Ho_Chi_Minh',
+        day
+      )
+    ).toEqual([])
   })
 })

@@ -1,13 +1,14 @@
 import { matchProfiles } from '../domain/matching'
-import { normalizeWeeklyAvailability } from '../domain/timezone'
+import { normalizeWeeklyAvailability, overlappingAvailabilitySlots } from '../domain/timezone'
 import type { LearningProfile } from '../../../types/domain'
 import type { ProfileView } from '../../../types/product'
 export function scoreProfiles(me: ProfileView, peer: ProfileView, subject: string) {
+  const reference = new Date()
   const convert = (p: ProfileView): LearningProfile => ({
     id: p.id,
     goals: p.goals,
     styles: p.styles,
-    availability: normalizeWeeklyAvailability(p.weeklyAvailability, p.timezone),
+    availability: normalizeWeeklyAvailability(p.weeklyAvailability, p.timezone, reference),
     subjects: p.subjects
       .filter((s) => s.name === subject || s.id === subject)
       .map((s) => ({
@@ -22,6 +23,12 @@ export function scoreProfiles(me: ProfileView, peer: ProfileView, subject: strin
     ...result,
     teachMe: result.complements.flatMap((s) => s.teachMe),
     iTeach: result.complements.flatMap((s) => s.iTeach),
-    overlap: me.timezone === peer.timezone ? me.avail.filter((a) => peer.avail.includes(a)) : [],
+    overlap: overlappingAvailabilitySlots(
+      me.weeklyAvailability,
+      me.timezone,
+      peer.weeklyAvailability,
+      peer.timezone,
+      reference
+    ),
   }
 }

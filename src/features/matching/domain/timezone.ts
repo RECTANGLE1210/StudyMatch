@@ -76,3 +76,28 @@ export function normalizeWeeklyAvailability(
   }
   return result
 }
+
+export function availabilitySlotKey(slot: Availability): string | null {
+  const period =
+    slot.start === 480 ? 'Sáng' : slot.start === 780 ? 'Chiều' : slot.start === 1080 ? 'Tối' : null
+  return period ? `${['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][slot.day]}-${period}` : null
+}
+
+export function overlappingAvailabilitySlots(
+  viewer: Availability[],
+  viewerZone: string,
+  displayed: Availability[],
+  displayedZone: string,
+  reference = new Date()
+): string[] {
+  const mine = normalizeWeeklyAvailability(viewer, viewerZone, reference)
+  return displayed.flatMap((slot) => {
+    const key = availabilitySlotKey(slot)
+    const shared = normalizeWeeklyAvailability([slot], displayedZone, reference).some((other) =>
+      mine.some(
+        (own) => own.day === other.day && Math.max(own.start, other.start) < Math.min(own.end, other.end)
+      )
+    )
+    return key && shared ? [key] : []
+  })
+}

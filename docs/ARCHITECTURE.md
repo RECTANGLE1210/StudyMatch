@@ -13,7 +13,7 @@ React pages → custom hooks/providers/application services → pure domain và 
 - `features/matching`: scoring thuần, timezone/DST normalization, candidate paging, UI giải thích strong/weak và filters. Trọng số chỉ có một module.
 - `features/chat`: cursor `(created_at,id)`, merge/dedup, subscription cleanup, read/unread. Không giả tin nhắn đã gửi; form chỉ xóa sau RPC thành công.
 - `features/scheduling`: form từ Figma và RPC propose/confirm/reject/reschedule/cancel; timezone UTC conversion và state machine độc lập.
-- `features/study-room`: load/access theo session UUID, attendance, shared goals, Meet, feedback và timestamp Pomodoro local; progress dùng server clock thay vì timer UI.
+- `features/study-room`: load/access theo session UUID, attendance, shared goals, Meet, feedback và Pomodoro chung lưu tại room_sync_state qua API v2/cờ rollout, phiên cũ dùng timer local; timestamp server + clock đơn điệu của browser để đếm. Room subscription theo session UUID, polling fallback 2 giây và refresh khi quay lại tab. Progress vẫn dùng server timestamps của buổi học.
 - `features/documents`: private uploads/metadata, session-scoped library, attach/detach, PDF/image previews và signed downloads.
 - `features/progress`, `notifications`, `home`, `pricing`: hiển thị actual data hoặc empty/loading/error. Pricing chưa có billing.
 - `lib/supabase`: client/auth/storage và typed RPC boundary; `types`: entities/DTOs chung.

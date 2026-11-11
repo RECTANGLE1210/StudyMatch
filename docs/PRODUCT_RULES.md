@@ -26,7 +26,9 @@ Phải có accepted connection và môn chung. Proposer chọn partner, môn/top
 
 Lifecycle: proposed → scheduled → in_progress → completed; có rejected/cancelled/missed. Cả hai phải confirm attendance và đang trong khung giờ trước khi bắt đầu. Terminal state không thể quay lại. Server gán started_at/completed_at, không nhận số phút/counters từ browser.
 
-Workspace reconcile khi tải và mỗi khoảng 30 giây: proposal hết hạn bị hủy, scheduled quá giờ nhưng chưa bắt đầu thành missed, in_progress tới ends_at hoàn tất với completed_at bị chặn ở ends_at. Cách này hoạt động khi người dùng truy cập; không có cron chạy nền khi mọi người offline. Progress được cập nhật trên lần tải kế tiếp. Pomodoro 25/50 là timer local theo timestamp, có pause/reset và không quyết định số giờ học server.
+Workspace reconcile khi tải và mỗi khoảng 30 giây: proposal hết hạn bị hủy, scheduled quá giờ nhưng chưa bắt đầu thành missed, in_progress tới ends_at hoàn tất với completed_at bị chặn ở ends_at. Cách này hoạt động khi người dùng truy cập; không có cron chạy nền khi mọi người offline. Progress được cập nhật trên lần tải kế tiếp. Pomodoro 25/50 dùng trạng thái chung theo session, lưu duration/elapsed/started_at/revision trong room_sync_state trên server; chỉ buổi tạo sau khi bật cờ và cả hai client hỗ trợ API v2. Buổi cũ giữ timer cá nhân, không tự chuyển giữa buổi. Cả hai participant được start/pause/reset; row lock và expected revision từ chối thao tác trên dữ liệu cũ. Browser đếm theo server timestamp và performance.now(), không phụ thuộc đồng hồ máy; refresh/rejoin giữ nguyên timer. Timer tự đóng băng khi buổi học kết thúc và không quyết định số giờ học server.
+
+Room tải thay đổi qua Realtime theo session và fallback polling 2 giây khi tab hiển thị; focus/online/visibilitychange tải lại ngay. Meet link lưu trong study_sessions.meet_link và giữ theo lịch sử buổi học, không dùng localStorage hoặc bộ nhớ tạm.
 
 Checklist chia sẻ cho cả hai, chỉ sửa khi session active. Google Meet do user tự nhập; chỉ nhận HTTPS meet.google.com hợp lệ, không tự tạo meeting/WebRTC. Feedback 1–5 và comment thuộc người gửi, chỉ sau completed.
 

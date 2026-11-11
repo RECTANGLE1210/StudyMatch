@@ -26,6 +26,7 @@ function pdfFixture() {
 }
 test.beforeAll(async () => {
   await backend.init()
+  await backend.db.exec('update public.room_sync_rollout set enabled=true,starts_at=clock_timestamp()')
 })
 test.afterAll(async () => {
   await backend.db.close()
@@ -54,6 +55,14 @@ test('two learners persist invitations, chat, a session, materials, feedback and
   await expect(a.getByRole('heading', { name: 'Chào Người học A ☀️' })).toBeVisible()
   await a.locator('.app-sidebar').getByRole('button', { name: 'Smart Match', exact: true }).click()
   await expect(a.getByText('Người học B', { exact: true })).toBeVisible()
+  await a.getByRole('button', { name: 'Xem hồ sơ', exact: true }).click()
+  await expect(a.getByRole('button', { name: 'Thứ 2 Tối', exact: true })).toHaveClass(/bg-caramel/)
+  await expect(a.getByRole('button', { name: 'Thứ 3 Tối', exact: true })).toHaveClass(/bg-matcha /)
+  await expect(a.getByRole('button', { name: 'Thứ 2 Tối', exact: true })).toHaveCSS(
+    'background-color',
+    'rgb(216, 156, 87)'
+  )
+  await a.getByRole('button', { name: 'Đóng', exact: true }).click()
   await a.getByRole('button', { name: 'Gửi lời mời', exact: true }).click()
   await expect(a.getByRole('button', { name: 'Hủy lời mời', exact: true })).toBeVisible()
   await b.goto('/')
@@ -94,11 +103,53 @@ test('two learners persist invitations, chat, a session, materials, feedback and
   ])
   await a.goto(`/sessions/${id}`)
   await a.getByRole('button', { name: 'Xác nhận tham gia', exact: true }).click()
+  // Deliberately skew the second browser's wall clock; the shared timer uses server time.
+  await b.addInitScript(() => {
+    const realNow = Date.now.bind(Date)
+    Date.now = () => realNow() + 5 * 60_000
+  })
   await b.goto(`/sessions/${id}`)
   await b.getByRole('button', { name: 'Xác nhận tham gia', exact: true }).click()
   await a.reload()
   await a.getByRole('button', { name: 'Bắt đầu phiên học', exact: true }).click()
-  await expect(a.getByText('25:00', { exact: true })).toBeVisible()
+  await expect(a.getByRole('timer', { name: 'Pomodoro chung' })).toHaveText('25:00')
+  await expect(b.getByRole('timer', { name: 'Pomodoro chung' })).toHaveText('25:00')
+  await a.getByRole('button', { name: 'Bắt đầu', exact: true }).click()
+  await expect(b.getByRole('button', { name: 'Tạm dừng', exact: true })).toBeVisible()
+  await b.getByRole('button', { name: 'Tạm dừng', exact: true }).click()
+  await expect(a.getByRole('button', { name: 'Bắt đầu', exact: true })).toBeVisible()
+  await expect(a.getByRole('timer')).toHaveText(await b.getByRole('timer').innerText())
+  await b.getByRole('button', { name: '50 phút', exact: true }).click()
+  await expect(a.getByRole('timer')).toHaveText('50:00')
+  await a.getByRole('button', { name: 'Bắt đầu', exact: true }).click()
+  await expect(b.getByRole('button', { name: 'Tạm dừng', exact: true })).toBeVisible()
+  await b.reload()
+  await expect(b.getByRole('button', { name: 'Tạm dừng', exact: true })).toBeVisible()
+  const seconds = (text: string) => text.split(':').reduce((total, n) => total * 60 + Number(n), 0)
+  await expect
+    .poll(async () =>
+      Math.abs(
+        seconds(await a.getByRole('timer').innerText()) - seconds(await b.getByRole('timer').innerText())
+      )
+    )
+    .toBeLessThanOrEqual(1)
+  await b.getByRole('button', { name: 'Tạm dừng', exact: true }).click()
+  await expect(a.getByRole('button', { name: 'Bắt đầu', exact: true })).toBeVisible()
+  await expect(a.getByRole('timer')).toHaveText(await b.getByRole('timer').innerText())
+  await a.getByRole('button', { name: '25 phút', exact: true }).click()
+  await expect(b.getByRole('timer')).toHaveText('25:00')
+  // Losing the versioned endpoint must not silently switch an active shared room to local mode.
+  await a.route('**/rest/v1/rpc/get_room_v2', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({ code: 'PGRST202', message: 'get_room_v2 temporarily unavailable' }),
+    })
+  )
+  await expect(a.getByRole('alert').filter({ hasText: 'get_room_v2 temporarily unavailable' })).toBeVisible()
+  await expect(a.getByRole('timer', { name: 'Pomodoro chung' })).toHaveText('25:00')
+  await a.unroute('**/rest/v1/rpc/get_room_v2')
+  await expect(a.getByRole('alert').filter({ hasText: 'get_room_v2 temporarily unavailable' })).toHaveCount(0)
   await a.getByLabel('Mục tiêu kiểm thử', { exact: true }).click()
   await expect(a.getByLabel('Mục tiêu kiểm thử', { exact: true })).toBeChecked()
   await a
@@ -106,6 +157,17 @@ test('two learners persist invitations, chat, a session, materials, feedback and
     .fill('https://meet.google.com/abc-defg-hij')
   await a.getByRole('button', { name: 'Lưu', exact: true }).click()
   await expect(a.getByRole('button', { name: 'Mở', exact: true })).toBeEnabled()
+  await expect(b.getByRole('textbox', { name: 'Google Meet', exact: true })).toHaveValue(
+    'https://meet.google.com/abc-defg-hij'
+  )
+  await expect(b.getByRole('button', { name: 'Mở', exact: true })).toBeEnabled()
+  await b
+    .getByRole('textbox', { name: 'Google Meet', exact: true })
+    .fill('https://meet.google.com/xyz-abcd-efg')
+  await b.getByRole('button', { name: 'Lưu', exact: true }).click()
+  await expect(a.getByRole('textbox', { name: 'Google Meet', exact: true })).toHaveValue(
+    'https://meet.google.com/xyz-abcd-efg'
+  )
   await a.getByRole('button', { name: '+ Gắn từ ngân hàng', exact: true }).click()
   await a.getByRole('button', { name: 'Tải lên mục mới', exact: true }).click()
   await a
@@ -183,3 +245,40 @@ test('a new account completes the original five-step onboarding with real data',
   await expect(page.getByRole('heading', { name: 'Chào Người học C ☀️', exact: true })).toBeVisible()
   await context.close()
 })
+
+for (const legacyOnly of [true, false]) {
+  test(`existing room keeps its local timer (original backend: ${legacyOnly})`, async ({ browser }) => {
+    const old = new LocalBackend()
+    await old.init({ legacyOnly })
+    let context: Awaited<ReturnType<typeof old.context>> | undefined
+    try {
+      const result = await old.db.query<{
+        id: string
+      }>(`insert into public.study_sessions(creator_id,partner_id,subject_id,status,starts_at,ends_at,started_at)
+        select '${A}','${B}',id,'in_progress',now()-interval '1 minute',now()+interval '1 hour',now()-interval '1 minute' from public.subjects limit 1 returning id`)
+      context = await old.context(browser, A)
+      const page = await context.newPage()
+      const errors: string[] = []
+      page.on('pageerror', (error) => errors.push(error.message))
+      await page.goto(`/sessions/${result.rows[0].id}`)
+      await expect(page.getByRole('timer', { name: 'Pomodoro cá nhân' })).toHaveText('25:00')
+      await page.getByRole('button', { name: 'Bắt đầu', exact: true }).click()
+      await expect(page.getByRole('button', { name: 'Tạm dừng', exact: true })).toBeVisible()
+      if (!legacyOnly)
+        await old.db.exec('update public.room_sync_rollout set enabled=true,starts_at=clock_timestamp()')
+      await expect.poll(async () => page.getByRole('timer').innerText()).not.toBe('25:00')
+      await expect(page.getByRole('timer', { name: 'Pomodoro cá nhân' })).toBeVisible()
+      await page.getByRole('button', { name: 'Tạm dừng', exact: true }).click()
+      await page
+        .getByRole('textbox', { name: 'Google Meet', exact: true })
+        .fill('https://meet.google.com/old-room-aaa')
+      await page.getByRole('button', { name: 'Lưu', exact: true }).click()
+      await expect(page.getByRole('button', { name: 'Mở', exact: true })).toBeEnabled()
+      await expect(page.getByRole('timer')).not.toHaveText(/NaN/)
+      expect(errors).toEqual([])
+    } finally {
+      await context?.close()
+      await old.db.close()
+    }
+  })
+}

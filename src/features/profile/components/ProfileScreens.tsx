@@ -1028,7 +1028,12 @@ export function PublicProfile({
       <h4 className="font-bold mt-4 mb-2">
         Lịch rảnh <span className="text-xs font-normal opacity-60">(ô cam = trùng với bạn)</span>
       </h4>
-      <AvailabilityGrid value={x.avail} compare={x.timezone === p.timezone ? p.avail : []} />
+      <AvailabilityGrid value={x.avail} compare={sc.overlap} />
+      {x.timezone !== p.timezone && (
+        <p className="text-xs opacity-60">
+          Lịch hiển thị theo múi giờ {x.timezone}; ô cam tính theo thời gian thực trùng nhau.
+        </p>
+      )}
       <p className="text-xs mt-1">{summarize(x.avail)}</p>
       <div className="flex flex-wrap gap-2 mt-3">
         {x.goals.map((g) => (

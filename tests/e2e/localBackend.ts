@@ -38,13 +38,17 @@ export class LocalBackend {
   db = new PGlite()
   files = new Map<string, { body: Buffer; type: string }>()
   signed = new Map<string, { key: string; expires: number }>()
-  async init() {
+  async init(options: { legacyOnly?: boolean } = {}) {
     await this.db.exec(
       `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets,name text not null,unique(bucket_id,name));alter table storage.objects enable row level security;grant usage on schema storage to authenticated;grant select,insert,delete on storage.objects to authenticated;`
     )
     const folder = resolve('supabase/migrations')
     for (const name of readdirSync(folder)
-      .filter((n) => n.endsWith('.sql'))
+      .filter(
+        (n) =>
+          n.endsWith('.sql') &&
+          (!options.legacyOnly || ['202611040001_foundation.sql', '202611100001_product.sql'].includes(n))
+      )
       .sort())
       await this.db.exec(readFileSync(resolve(folder, name), 'utf8'))
     await this.db.query('insert into auth.users values($1),($2),($3)', [A, B, C])
@@ -69,8 +73,8 @@ export class LocalBackend {
             ],
             goals: ['Cùng giải bài tập'],
             styles: ['Pomodoro yên tĩnh'],
-            avail: ['T2-Tối'],
-            timezone: 'Asia/Ho_Chi_Minh',
+            avail: id === A ? ['T2-Tối'] : ['T2-Tối', 'T3-Tối'],
+            timezone: id === A ? 'Asia/Ho_Chi_Minh' : 'Asia/Saigon',
           }),
         ])
       )
@@ -142,7 +146,7 @@ export class LocalBackend {
       if (url.pathname.startsWith('/rest/v1/rpc/')) {
         const name = url.pathname.split('/').at(-1)!,
           args = request.postDataJSON() ?? {}
-        if (!/^[a-z_]+$/.test(name)) throw new Error('Invalid RPC')
+        if (!/^[a-z][a-z0-9_]*$/.test(name)) throw new Error('Invalid RPC')
         const names = Object.keys(args)
         if (names.some((n) => !/^[a-z_]+$/.test(n))) throw new Error('Invalid argument')
         const values = names.map((n) =>

@@ -1,6 +1,6 @@
 # Database
 
-Áp migrations theo thứ tự: `202611040001_foundation.sql` rồi `202611100001_product.sql`. Chưa chạy trên database từ xa. Seed chỉ thêm university/major/subject/topic catalog; không thêm user, conversation, session, progress hoặc notification mẫu.
+Cài mới có thể áp migrations theo thứ tự: `202611040001_foundation.sql`, `202611100001_product.sql`, rồi `202611110001_room_sync.sql`. Chưa chạy trên database từ xa. Seed chỉ thêm university/major/subject/topic catalog; không thêm user, conversation, session, progress hoặc notification mẫu.
 
 | Nhóm | Bảng |
 |---|---|
@@ -23,6 +23,8 @@ Tất cả application tables bật RLS. Public learning fields chỉ đọc cho
 - `send_invitation`, `respond_invitation`: self/duplicate/block/actor checks, transaction tạo conversation và participants khi accept.
 - `send_message`, `message_page`, `mark_conversation_read`: author/timestamps từ server, history keyset và unread/notifications đồng bộ.
 - `propose_study_session`, `reschedule_study_session`, `transition_session`, `confirm_attendance`, `set_session_topics`: accepted connection/môn/topic/role/time/state rules. Reschedule quay về proposed và xóa attendance cũ.
+- `control_pomodoro(session, command, expected_revision, minutes)`: shared 25/50 timer trên study_sessions; chỉ participant của session in_progress còn hạn, serialized row lock và revision check. Không nhận elapsed/started_at từ browser; trigger dừng timer khi session kết thúc.
+- `get_room`: trả serverNow cùng shared timer/session/Meet; client sử dụng snapshot phòng mới nhất, Realtime theo session và polling fallback.
 - `get_workspace`, `get_room`, `get_progress`: chỉ dữ liệu actor được phép đọc; stats aggregate từ actual sessions/goals, không bị cắt theo số rows hiển thị.
 - `attach_resource`, `remove_session_goal`: participant và active-session checks. Goal/material edits bị chặn ngay khi hết khung giờ, kể cả trước lazy status reconciliation.
 - `block_user`, `unblock_user`: block hủy active relations/sessions; report lưu reporter từ auth.uid(). Unblock không revive lịch sử.
@@ -39,3 +41,5 @@ Download/preview tạo signed URL 60 giây; avatar dùng signed URL 1 giờ và 
 Publication Realtime được mở rộng cho bảng ứng dụng nếu publication đã tồn tại. RLS vẫn hạn chế event visibility. Workspace có refresh fallback; browser tests không xác nhận WebSocket delivery thật.
 
 `refresh_session_statuses` reconcile các phiên của actor khi tải workspace; không có cron toàn hệ thống. Luật chi tiết tại PRODUCT_RULES.md. Bất kỳ thay đổi schema nào sau khi migrations đã áp phải dùng version mới, không sửa remote bằng thao tác ngoài lịch sử.
+
+Production đang chạy: dùng riêng `202611110002_room_sync_rollout.sql` theo [ROOM_SYNC.md](ROOM_SYNC.md), không cần áp 001. Hai bảng mới room_sync_rollout/room_sync_state với RLS và API get_room_v2/join_room_sync/control_pomodoro_v2 không thay API cũ. Cờ ban đầu tắt; bật/tắt bằng scripts trong supabase/operations. Chỉ phòng tạo sau mốc bật cờ và cả hai client mới tham gia được dùng timer chung.

@@ -1,13 +1,13 @@
+import { availabilitySlotKey } from '../../matching/domain/timezone'
 import { rpc } from '../../../lib/supabase/rpc'
 import { requireSupabase } from '../../../lib/supabase/client'
 import type { CatalogSubject, ProfileView } from '../../../types/product'
-const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
 export function withSlots(p: ProfileView): ProfileView {
   return {
     ...p,
     avail: (p.weeklyAvailability ?? []).flatMap((a) => {
-      const slot = a.start === 480 ? 'Sáng' : a.start === 780 ? 'Chiều' : a.start === 1080 ? 'Tối' : null
-      return slot ? [`${days[a.day]}-${slot}`] : []
+      const key = availabilitySlotKey(a)
+      return key ? [key] : []
     }),
   }
 }
