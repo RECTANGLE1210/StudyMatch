@@ -4,7 +4,7 @@ Phạm vi đã chốt: toàn bộ MVP, giữ thiết kế Figma và thay mock da
 
 | Tính năng | UI và code integration | Kiểm chứng / việc còn lại |
 |---|---|---|
-| Auth | Login Figma, Google PKCE, session restoration, Remember, sign-out, guards | Browser guard/storage tests; cần Google provider thật |
+| Auth | Login Figma, Google/email-password, xác nhận/gửi lại email, reset PKCE, session restoration, Remember, sign-out, guards | SDK/browser HTTP fixture + storage/guard tests; cần Email/Google provider, SMTP và email callback thật theo EMAIL_AUTH.md |
 | Hồ sơ/Onboarding | Editors Figma, năm bước, dynamic catalogs/custom options, per-subject knowledge, avatar private | SQL/browser save-refresh tests; cần Storage/Auth HTTP thật |
 | Matching | Trọng số 35/30/20/15, complementary topics, timezone/DST, explainability/filter/paging | Unit tests + browser candidates/invitation flow |
 | Invitations/Block/Report | Pending/accept/reject/cancel, duplicates/self/block/actor rules, privacy controls | SQL authorization + two-user browser flow |

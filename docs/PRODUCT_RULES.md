@@ -2,7 +2,7 @@
 
 ## Tài khoản và hồ sơ
 
-Chỉ Google OAuth qua Supabase, không custom password auth. User mới lấy tên/ảnh từ chính session Google nếu có, các trường học tập bắt đầu trống. Profile, nhiều môn, proficiency và strong/weak được lưu nguyên tử bằng `save_profile_view` → `save_learning_profile`; không cho browser tự ghi trạng thái onboarding hoặc impersonate account khác.
+Đăng nhập Google OAuth hoặc email/mật khẩu qua Supabase Auth; không tự lưu mật khẩu trong bảng ứng dụng. Create Account mở đăng ký email, xác nhận email theo cấu hình Supabase rồi vào onboarding. Quên mật khẩu gửi liên kết PKCE và chỉ mở form đổi mật khẩu sau sự kiện PASSWORD_RECOVERY; không dùng phiên đăng nhập thường để chấp nhận liên kết lỗi. User mới lấy tên/ảnh từ chính auth session nếu có, các trường học tập bắt đầu trống. Xem [EMAIL_AUTH.md](EMAIL_AUTH.md) để bật Email provider, redirect và SMTP. Profile, nhiều môn, proficiency và strong/weak được lưu nguyên tử bằng `save_profile_view` → `save_learning_profile`; không cho browser tự ghi trạng thái onboarding hoặc impersonate account khác.
 
 Hoàn tất onboarding cần tên, trường, ngành, ít nhất một môn, goals, styles và lịch rảnh. Profile UI cho sửa lại toàn bộ. Các danh mục load từ database; tên trường/ngành/topic tự nhập được tạo trong cùng transaction lưu hồ sơ, có giới hạn độ dài và số phần tử. Người dùng có thể tự bổ sung môn qua `create_subject` trước khi thêm vào hồ sơ; database chặn trùng tên hoặc mã sau khi chuẩn hóa Unicode, hoa thường và khoảng trắng (xem [SUBJECT_CATALOG.md](SUBJECT_CATALOG.md)). Mỗi topic chỉ thuộc strong hoặc weak cho từng user/môn. Lịch rảnh giữ grid sáng/chiều/tối của Figma; mỗi slot 3 giờ, lưu local với IANA timezone, không giả định hai user cùng múi giờ.
 

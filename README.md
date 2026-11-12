@@ -1,6 +1,6 @@
 # StudyMatch
 
-Ứng dụng MVP ghép bạn học 1–1: Google OAuth, hồ sơ học tập, matching, lời mời, chat, lịch học, Study Room, tài liệu riêng tư, tiến độ và thông báo. UI được chuyển từ Figma Make StudyMatch, giữ CSS/tokens, sidebar, card, modal và bố cục responsive; dữ liệu hiển thị lấy từ Supabase, không có tài khoản hoặc hoạt động demo mặc định.
+Ứng dụng MVP ghép bạn học 1–1: Google OAuth và email/mật khẩu, hồ sơ học tập, matching, lời mời, chat, lịch học, Study Room, tài liệu riêng tư, tiến độ và thông báo. UI được chuyển từ Figma Make StudyMatch, giữ CSS/tokens, sidebar, card, modal và bố cục responsive; dữ liệu hiển thị lấy từ Supabase, không có tài khoản hoặc hoạt động demo mặc định.
 
 ## Chạy ứng dụng
 
@@ -13,7 +13,7 @@ Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Chưa có project Supabase thì app chỉ mở màn hình Login; không giả đăng nhập hoặc ghi dữ liệu. Làm theo [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) để tạo project mới, áp hai migrations theo thứ tự, seed catalog và bật Google OAuth. Không dùng service_role/secret key trong frontend. `.env.local` luôn bị ignore.
+Chưa có project Supabase thì app chỉ mở màn hình Login; không giả đăng nhập hoặc ghi dữ liệu. Làm theo [SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) để tạo project mới, áp hai migrations theo thứ tự, seed catalog và bật Google OAuth. Không dùng service_role/secret key trong frontend. `.env.local` luôn bị ignore. Để bật đăng ký email/mật khẩu, xác nhận email và khôi phục mật khẩu, xem [EMAIL_AUTH.md](docs/EMAIL_AUTH.md).
 
 Nếu npm giải nén lỗi trên Google Drive, dùng:
 

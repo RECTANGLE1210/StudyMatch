@@ -40,6 +40,9 @@ const router = createBrowserRouter(
   createRoutesFromElements(
     <>
       <Route path="/login" element={<LiveLogin />} />
+      <Route path="/signup" element={<LiveLogin mode="signup" />} />
+      <Route path="/forgot-password" element={<LiveLogin mode="forgot" />} />
+      <Route path="/reset-password" element={<LiveLogin mode="reset" />} />
       <Route element={<AuthGuard />}>
         <Route
           path="/onboarding"

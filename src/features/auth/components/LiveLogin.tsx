@@ -1,16 +1,27 @@
 import { Navigate } from 'react-router-dom'
 import { Login } from './Login'
+import { EmailAuthForm, type AuthMode } from './EmailAuthForm'
 import { useAuth } from '../hooks/useAuth'
-import { signInWithGoogle } from '../../../lib/supabase/auth'
 import { Loading } from '../../../components/shared/Loading'
-export function LiveLogin() {
-  const { session, loading, error } = useAuth()
+export function LiveLogin({ mode = 'login' }: { mode?: AuthMode }) {
+  const { session, loading, error, passwordRecovery } = useAuth()
+  const callbackFailed = new URLSearchParams(window.location.search).has('error')
   if (loading) return <Loading />
-  if (session) return <Navigate to="/" replace />
+  if (session && mode !== 'reset') return <Navigate to="/" replace />
   return (
-    <>
-      {error && <p role="alert">{error}</p>}
-      <Login onSignIn={signInWithGoogle} />
-    </>
+    <Login>
+      <EmailAuthForm
+        key={mode}
+        mode={mode}
+        error={
+          error ||
+          (callbackFailed
+            ? 'Liên kết xác nhận hoặc đăng nhập không hợp lệ hay đã hết hạn. Vui lòng thử lại.'
+            : '')
+        }
+        canReset={Boolean(session && passwordRecovery && !callbackFailed)}
+        email={session?.user.email ?? ''}
+      />
+    </Login>
   )
 }

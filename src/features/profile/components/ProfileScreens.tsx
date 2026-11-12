@@ -304,7 +304,9 @@ function AvatarEditor({
         {st === 'err' ? (
           <p className="text-xs text-red-700">Không tải được ảnh. Hãy chọn ảnh JPG/PNG dưới 2MB.</p>
         ) : (
-          <p className="text-xs opacity-60">Mặc định lấy từ tài khoản Google. Ảnh JPG/PNG, tối đa 2MB.</p>
+          <p className="text-xs opacity-60">
+            Ảnh JPG/PNG, tối đa 2MB. Có thể dùng ảnh Google nếu tài khoản có sẵn.
+          </p>
         )}
         <input
           ref={ref}
@@ -1207,10 +1209,8 @@ export function ProfileScreen({ setModal }: { setModal: (m: { kind: 'signout' })
           </div>
           <div className="rounded-2xl border border-line p-4">
             <b>🔒 Chỉ mình bạn</b>
-            <p className="mt-1">Email Google: {EMAIL}</p>
-            <p className="opacity-70">
-              Đăng nhập bằng Google. Không chia sẻ thông tin liên hệ khi bạn chưa đồng ý.
-            </p>
+            <p className="mt-1">Email tài khoản: {EMAIL}</p>
+            <p className="opacity-70">Không chia sẻ thông tin liên hệ khi bạn chưa đồng ý.</p>
           </div>
         </div>
         <button className="btn btn-o mt-3" onClick={() => setModal({ kind: 'signout' })}>
