@@ -4,7 +4,7 @@
 
 Chỉ Google OAuth qua Supabase, không custom password auth. User mới lấy tên/ảnh từ chính session Google nếu có, các trường học tập bắt đầu trống. Profile, nhiều môn, proficiency và strong/weak được lưu nguyên tử bằng `save_profile_view` → `save_learning_profile`; không cho browser tự ghi trạng thái onboarding hoặc impersonate account khác.
 
-Hoàn tất onboarding cần tên, trường, ngành, ít nhất một môn, goals, styles và lịch rảnh. Profile UI cho sửa lại toàn bộ. Các danh mục load từ database; tên trường/ngành/môn/topic tự nhập được tạo trong cùng transaction, có giới hạn độ dài và số phần tử. Mỗi topic chỉ thuộc strong hoặc weak cho từng user/môn. Lịch rảnh giữ grid sáng/chiều/tối của Figma; mỗi slot 3 giờ, lưu local với IANA timezone, không giả định hai user cùng múi giờ.
+Hoàn tất onboarding cần tên, trường, ngành, ít nhất một môn, goals, styles và lịch rảnh. Profile UI cho sửa lại toàn bộ. Các danh mục load từ database; tên trường/ngành/topic tự nhập được tạo trong cùng transaction lưu hồ sơ, có giới hạn độ dài và số phần tử. Người dùng có thể tự bổ sung môn qua `create_subject` trước khi thêm vào hồ sơ; database chặn trùng tên hoặc mã sau khi chuẩn hóa Unicode, hoa thường và khoảng trắng (xem [SUBJECT_CATALOG.md](SUBJECT_CATALOG.md)). Mỗi topic chỉ thuộc strong hoặc weak cho từng user/môn. Lịch rảnh giữ grid sáng/chiều/tối của Figma; mỗi slot 3 giờ, lưu local với IANA timezone, không giả định hai user cùng múi giờ.
 
 Email chỉ lấy từ auth session và chỉ hiện trong tài khoản của chính user; không nằm trong public profile snapshots. Ảnh upload thuộc private avatars bucket và được cấp signed URL; ảnh Google có thể dùng URL từ Google session.
 

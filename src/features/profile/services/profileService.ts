@@ -36,6 +36,9 @@ export const profileService = {
     if (!saved) throw new Error('Không tải được hồ sơ vừa lưu')
     return saved
   },
+  createSubject(name: string, code: string) {
+    return rpc<CatalogSubject>('create_subject', { subject_name: name, subject_code: code.trim() || null })
+  },
   async subjects(): Promise<CatalogSubject[]> {
     const { data, error } = await requireSupabase()
       .from('subjects')

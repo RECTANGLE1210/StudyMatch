@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useProfile } from '../hooks/ProfileProvider'
 import { profileService } from '../services/profileService'
+import { SubjectCreateForm } from '../../subjects/components/SubjectCreateForm'
+import { subjectNameKey, subjectCodeKey } from '../../subjects/domain/subjectIdentity'
 import { catalogRepository } from '../../subjects/repositories/catalogRepository'
 import { scoreProfiles } from '../../matching/services/scoreProfiles'
 import { ErrorNotice } from '../../../components/shared/Feedback'
@@ -527,6 +529,7 @@ function SubjectPicker({
 }) {
   const [cat, setCat] = useState<CatalogView[] | null>(null)
   const [q, setQ] = useState('')
+  const [manual, setManual] = useState(false)
   const [error, setError] = useState('')
   useEffect(() => {
     let active = true
@@ -545,51 +548,54 @@ function SubjectPicker({
     }
   }, [])
   const f = (cat || []).filter(
-    (s) => !have.includes(s.name) && (s.name + s.code).toLowerCase().includes(q.toLowerCase())
+    (s) =>
+      !have.some((value) => subjectNameKey(value) === subjectNameKey(s.name)) &&
+      (subjectNameKey(s.name).includes(subjectNameKey(q)) ||
+        subjectCodeKey(s.code).includes(subjectCodeKey(q)))
   )
   return (
     <Modal onClose={onClose}>
       <ErrorNotice error={error} />
       <h3 className="text-xl font-extrabold mb-3">Thêm môn học</h3>
-      <input
-        autoFocus
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Tìm theo tên hoặc mã môn…"
-      />
-      <div className="mt-3 space-y-1">
-        {!cat ? (
-          [0, 1, 2].map((i) => <div key={i} className="h-12 rounded-xl bg-matcha-soft animate-pulse" />)
-        ) : (
-          <>
-            {f.map((s) => (
-              <button
-                key={s.code}
-                type="button"
-                onClick={() => onPick(s)}
-                className="w-full text-left px-4 py-3 rounded-2xl hover:bg-matcha-soft flex justify-between"
-              >
-                <b>{s.name}</b>
-                <span className="text-xs opacity-60">{s.code}</span>
-              </button>
-            ))}
-            {q.trim() && !(cat || []).some((s) => s.name.toLowerCase() === q.trim().toLowerCase()) && (
-              <button
-                type="button"
-                onClick={() => onPick({ name: q.trim(), code: '' })}
-                className="w-full text-left px-4 py-3 rounded-2xl text-forest font-semibold hover:bg-matcha-soft"
-              >
-                + Thêm môn “{q.trim()}”
-              </button>
+      {manual ? (
+        <SubjectCreateForm initialName={q} have={have} onPick={onPick} onCancel={() => setManual(false)} />
+      ) : (
+        <>
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Tìm theo tên hoặc mã môn…"
+          />
+          <div className="mt-3 space-y-1">
+            {!cat ? (
+              [0, 1, 2].map((i) => <div key={i} className="h-12 rounded-xl bg-matcha-soft animate-pulse" />)
+            ) : (
+              <>
+                {f.map((s) => (
+                  <button
+                    key={s.code}
+                    type="button"
+                    onClick={() => onPick(s)}
+                    className="w-full text-left px-4 py-3 rounded-2xl hover:bg-matcha-soft flex justify-between"
+                  >
+                    <b>{s.name}</b>
+                    <span className="text-xs opacity-60">{s.code}</span>
+                  </button>
+                ))}
+                {!f.length && !q.trim() && (
+                  <p className="text-sm opacity-60 p-3">
+                    Bạn đã thêm hết các môn có sẵn. Bấm “Tự bổ sung môn học” để tạo môn chưa có.
+                  </p>
+                )}
+              </>
             )}
-            {!f.length && !q.trim() && (
-              <p className="text-sm opacity-60 p-3">
-                Bạn đã thêm hết các môn có sẵn. Gõ tên để thêm môn mới.
-              </p>
-            )}
-          </>
-        )}
-      </div>
+          </div>
+          <button type="button" className="btn btn-s mt-4" onClick={() => setManual(true)}>
+            + Tự bổ sung môn học
+          </button>
+        </>
+      )}
     </Modal>
   )
 }
