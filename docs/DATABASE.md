@@ -43,3 +43,5 @@ Publication Realtime được mở rộng cho bảng ứng dụng nếu publicat
 `refresh_session_statuses` reconcile các phiên của actor khi tải workspace; không có cron toàn hệ thống. Luật chi tiết tại PRODUCT_RULES.md. Bất kỳ thay đổi schema nào sau khi migrations đã áp phải dùng version mới, không sửa remote bằng thao tác ngoài lịch sử.
 
 Production đang chạy: dùng riêng `202611110002_room_sync_rollout.sql` theo [ROOM_SYNC.md](ROOM_SYNC.md), không cần áp 001. Hai bảng mới room_sync_rollout/room_sync_state với RLS và API get_room_v2/join_room_sync/control_pomodoro_v2 không thay API cũ. Cờ ban đầu tắt; bật/tắt bằng scripts trong supabase/operations. Chỉ phòng tạo sau mốc bật cờ và cả hai client mới tham gia được dùng timer chung.
+
+Ngân hàng độc lập: `202611120001_library.sql` chạy trực tiếp sau product.sql, không phụ thuộc room-sync. Tạo library_resources/library_grants/library_attachments và private bucket library-materials; API get_library_resources/create_library_resource, ACL và attach/detach riêng. Không thay session_resources/get_room/get_workspace hoặc policies bucket cũ. Hướng dẫn: [LIBRARY_ACCESS.md](LIBRARY_ACCESS.md).

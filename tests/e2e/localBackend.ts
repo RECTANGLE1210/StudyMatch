@@ -250,6 +250,15 @@ export class LocalBackend {
           })
           return reply(200, { signedURL: `/object/sign/${bucket}/${name}?token=${token}` })
         }
+        if (method === 'GET') {
+          const rows = await this.as(id, (tx) =>
+            tx.query('select id from storage.objects where bucket_id=$1 and name=$2', [bucket, name])
+          )
+          const file = rows.rows.length ? this.files.get(key) : null
+          return file
+            ? route.fulfill({ status: 200, headers, contentType: file.type, body: file.body })
+            : reply(404, { message: 'Private file unavailable' })
+        }
         if (method === 'POST') {
           const form = await new Request('http://localhost', {
               method: 'POST',

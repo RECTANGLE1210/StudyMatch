@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 export function ErrorNotice({ error, retry }: { error: string; retry?: () => void }) {
   return error ? (
     <div role="alert" className="card p-3 my-3 text-sm text-red-700">
@@ -12,7 +13,7 @@ export function ErrorNotice({ error, retry }: { error: string; retry?: () => voi
   ) : null
 }
 export function Modal({ children, onClose }: { children: ReactNode; onClose: () => void }) {
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-espresso/40 grid place-items-center p-4" onClick={onClose}>
       <div
         role="dialog"
@@ -22,7 +23,8 @@ export function Modal({ children, onClose }: { children: ReactNode; onClose: () 
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 export function Empty({

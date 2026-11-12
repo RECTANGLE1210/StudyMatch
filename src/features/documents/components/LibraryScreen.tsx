@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWorkspace } from '../../workspace/hooks/useWorkspace'
 import { useProfile } from '../../profile/hooks/ProfileProvider'
+import { LibraryUpload } from './LibraryUpload'
+import { LibrarySharing, LibraryAttach } from './LibrarySharing'
+import { useLibrary } from '../hooks/useLibrary'
+import { libraryRepository } from '../repositories/libraryRepository'
 import { resourceRepository } from '../repositories/resourceRepository'
 import { Modal, ErrorNotice, Empty } from '../../../components/shared/Feedback'
 import { rpc } from '../../../lib/supabase/rpc'
@@ -22,7 +26,7 @@ export function ResourcePreview({ resource, onClose }: { resource: ResourceView;
       return
     }
     if (resource.storage_path)
-      void resourceRepository
+      void (resource.scope === 'library' ? libraryRepository : resourceRepository)
         .preview(resource.storage_path)
         .then((value) => {
           if (active) setUrl(value)
@@ -61,7 +65,7 @@ export function ResourcePreview({ resource, onClose }: { resource: ResourceView;
     </Modal>
   )
 }
-function UploadModal({ onClose, sessionId = '' }: { onClose: () => void; sessionId?: string }) {
+function LegacyUploadModal({ onClose, sessionId = '' }: { onClose: () => void; sessionId?: string }) {
   const { data, action, busy, error: operationError } = useWorkspace(),
     [session, setSession] = useState(sessionId),
     [kind, setKind] = useState<'doc' | 'quiz'>('doc'),
@@ -215,8 +219,11 @@ export function LibraryScreen() {
     [query, setQuery] = useState(''),
     [upload, setUpload] = useState(false),
     [remove, setRemove] = useState<ResourceView | null>(null),
-    [preview, setPreview] = useState<ResourceView | null>(null)
-  const library = data?.resources ?? [],
+    [preview, setPreview] = useState<ResourceView | null>(null),
+    [sharing, setSharing] = useState<ResourceView | null>(null),
+    [attach, setAttach] = useState<ResourceView | null>(null),
+    bank = useLibrary()
+  const library = [...bank.resources, ...(data?.resources ?? [])],
     list = library.filter(
       (r) =>
         (tab === 'all' || r.kind === tab) &&
@@ -227,9 +234,9 @@ export function LibraryScreen() {
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex-1">
           <h1 className="text-3xl font-extrabold">Ngân hàng tài liệu</h1>
-          <p className="opacity-70">Tài liệu và Quiz dùng chung theo từng buổi học.</p>
+          <p className="opacity-70">Lưu tài liệu bất cứ lúc nào, quản lý quyền và chia sẻ vào buổi học.</p>
         </div>
-        <button className="btn btn-p" onClick={() => setUpload(true)}>
+        <button className="btn btn-p" disabled={bank.available === null} onClick={() => setUpload(true)}>
           + Tải lên
         </button>
       </div>
@@ -252,6 +259,17 @@ export function LibraryScreen() {
           placeholder="Tìm theo tên hoặc môn…"
         />
       </div>
+      <ErrorNotice
+        error={bank.error}
+        retry={() => {
+          void bank.reload()
+        }}
+      />
+      {bank.available === false && (
+        <p role="status" className="text-sm opacity-70">
+          Ngân hàng tài liệu độc lập đang được cập nhật. Tài liệu buổi học hiện có vẫn dùng bình thường.
+        </p>
+      )}
       {!list.length ? (
         <Empty
           title={library.length ? 'Không tìm thấy tài liệu nào' : 'Ngân hàng đang trống'}
@@ -266,7 +284,11 @@ export function LibraryScreen() {
       ) : (
         <div className="grid md:grid-cols-2 gap-3">
           {list.map((r) => (
-            <div key={r.id} className="card p-4 hover:-translate-y-0.5 transition">
+            <div
+              key={`${r.scope ?? 'session'}-${r.id}`}
+              data-resource-id={r.id}
+              className="card p-4 hover:-translate-y-0.5 transition"
+            >
               <div className="flex gap-3">
                 <div
                   className={`w-11 h-11 rounded-2xl grid place-items-center text-xl shrink-0 ${r.kind === 'quiz' ? 'bg-caramel/25' : 'bg-matcha-soft'}`}
@@ -276,10 +298,17 @@ export function LibraryScreen() {
                 <div className="flex-1 min-w-0">
                   <b className="block truncate">{r.name}</b>
                   <p className="text-xs opacity-60">
-                    {r.kind === 'quiz' ? 'Quiz' : 'Tài liệu'} · {r.subjectName}
+                    {r.kind === 'quiz' ? 'Quiz' : 'Tài liệu'}
+                    {r.subjectName ? ` · ${r.subjectName}` : ''}
                   </p>
                   <p className="text-xs opacity-60">
                     {r.uploaderName ?? 'Hồ sơ không còn khả dụng'} · {displayDate(r.created_at, p.timezone)}
+                    <br />
+                    {r.scope === 'library'
+                      ? r.visibility === 'public'
+                        ? '🌐 Công khai với tài khoản StudyMatch'
+                        : '🔒 Chỉ người có quyền'
+                      : 'Tài liệu buổi học cũ'}
                   </p>
                 </div>
               </div>
@@ -287,30 +316,72 @@ export function LibraryScreen() {
                 <button className="btn btn-o text-xs !py-1.5" onClick={() => setPreview(r)}>
                   Mở
                 </button>
-                <button
-                  disabled={
-                    busy ||
-                    !data?.sessions.some(
-                      (s) =>
-                        s.id === r.session_id && ['proposed', 'scheduled', 'in_progress'].includes(s.status)
-                    )
-                  }
-                  className={`btn ${r.attached ? 'btn-s' : 'btn-p'} text-xs !py-1.5`}
-                  onClick={() => {
-                    void action(
-                      () => rpc('attach_resource', { resource: r.id, attached: !r.attached }),
-                      r.attached ? 'Đã gỡ khỏi Study Room' : 'Đã gắn vào Study Room'
-                    )
-                  }}
-                >
-                  {r.attached ? '✓ Đã gắn · Gỡ' : 'Gắn vào Study Room'}
-                </button>
-                <button
-                  className="btn btn-o text-xs !py-1.5"
-                  onClick={() => navigate(`/sessions/${r.session_id}`)}
-                >
-                  Study Room
-                </button>
+                {r.scope === 'library' ? (
+                  <>
+                    <button
+                      disabled={
+                        busy ||
+                        !data?.sessions.some((s) =>
+                          ['proposed', 'scheduled', 'in_progress'].includes(s.status)
+                        )
+                      }
+                      className="btn btn-p text-xs !py-1.5"
+                      onClick={() => setAttach(r)}
+                    >
+                      Gắn vào buổi học
+                    </button>
+                    {r.uploader_id === p.id && (
+                      <button className="btn btn-o text-xs !py-1.5" onClick={() => setSharing(r)}>
+                        Chia sẻ
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <button
+                      disabled={
+                        busy ||
+                        !data?.sessions.some(
+                          (s) =>
+                            s.id === r.session_id &&
+                            ['proposed', 'scheduled', 'in_progress'].includes(s.status)
+                        )
+                      }
+                      className={`btn ${r.attached ? 'btn-s' : 'btn-p'} text-xs !py-1.5`}
+                      onClick={() => {
+                        void action(
+                          () => rpc('attach_resource', { resource: r.id, attached: !r.attached }),
+                          r.attached ? 'Đã gỡ khỏi Study Room' : 'Đã gắn vào Study Room'
+                        )
+                      }}
+                    >
+                      {r.attached ? '✓ Đã gắn · Gỡ' : 'Gắn vào Study Room'}
+                    </button>
+                    <button
+                      className="btn btn-o text-xs !py-1.5"
+                      onClick={() => navigate(`/sessions/${r.session_id}`)}
+                    >
+                      Study Room
+                    </button>
+                    {r.uploader_id === p.id && bank.available && (
+                      <button
+                        className="btn btn-o text-xs !py-1.5"
+                        disabled={busy}
+                        onClick={async () => {
+                          if (
+                            await action(
+                              () => libraryRepository.copyLegacy(r),
+                              'Đã sao chép vào ngân hàng độc lập'
+                            )
+                          )
+                            await bank.reload()
+                        }}
+                      >
+                        Sao chép vào ngân hàng
+                      </button>
+                    )}
+                  </>
+                )}
                 {r.uploader_id === p.id && (
                   <button className="btn btn-o text-xs !py-1.5 text-red-700" onClick={() => setRemove(r)}>
                     Xóa
@@ -321,12 +392,21 @@ export function LibraryScreen() {
           ))}
         </div>
       )}
-      {upload && <UploadModal onClose={() => setUpload(false)} />}{' '}
+      {upload &&
+        (bank.available ? (
+          <LibraryUpload onSaved={bank.reload} onClose={() => setUpload(false)} />
+        ) : (
+          <LegacyUploadModal onClose={() => setUpload(false)} />
+        ))}
+      {sharing && (
+        <LibrarySharing resource={sharing} onChange={bank.reload} onClose={() => setSharing(null)} />
+      )}
+      {attach && <LibraryAttach resource={attach} onSaved={bank.reload} onClose={() => setAttach(null)} />}
       {preview && <ResourcePreview resource={preview} onClose={() => setPreview(null)} />}{' '}
       {remove && (
         <Modal onClose={() => setRemove(null)}>
           <h3 className="font-bold text-lg">Xóa “{remove.name}”?</h3>
-          <p className="text-sm opacity-70 my-2">Tài liệu sẽ được xóa khỏi buổi học.</p>
+          <p className="text-sm opacity-70 my-2">Tài liệu và quyền truy cập của người khác sẽ bị thu hồi.</p>
           <div className="flex justify-end gap-2">
             <button className="btn btn-o" onClick={() => setRemove(null)}>
               Giữ lại
@@ -335,8 +415,18 @@ export function LibraryScreen() {
               disabled={busy}
               className="btn btn-p"
               onClick={async () => {
-                if (await action(() => resourceRepository.remove(remove.id), 'Đã xóa tài liệu'))
+                if (
+                  await action(
+                    () =>
+                      remove.scope === 'library'
+                        ? libraryRepository.remove(remove.id)
+                        : resourceRepository.remove(remove.id),
+                    'Đã xóa tài liệu'
+                  )
+                ) {
+                  await bank.reload()
                   setRemove(null)
+                }
               }}
             >
               Xóa
@@ -361,8 +451,10 @@ export function RoomResources({
     [upload, setUpload] = useState(false),
     [query, setQuery] = useState(''),
     [preview, setPreview] = useState<ResourceView | null>(null),
-    on = resources.filter((r) => r.attached),
-    rest = resources.filter((r) => !r.attached && r.name.toLowerCase().includes(query.toLowerCase()))
+    bank = useLibrary(sessionId),
+    all = [...resources, ...bank.resources],
+    on = all.filter((r) => r.attached),
+    rest = all.filter((r) => !r.attached && r.name.toLowerCase().includes(query.toLowerCase()))
   return (
     <div className="card p-5">
       <div className="flex items-center mb-2">
@@ -386,10 +478,11 @@ export function RoomResources({
                 disabled={busy}
                 className="text-xs opacity-60 underline"
                 onClick={() => {
-                  void action(
-                    () => rpc('attach_resource', { resource: r.id, attached: false }),
-                    'Đã gỡ tài liệu'
-                  )
+                  void action(async () => {
+                    if (r.scope === 'library') await libraryRepository.detach(r.id, sessionId)
+                    else await rpc('attach_resource', { resource: r.id, attached: false })
+                    await bank.reload()
+                  }, 'Đã gỡ tài liệu')
                 }}
               >
                 Gỡ
@@ -400,7 +493,15 @@ export function RoomResources({
       ) : (
         <p className="text-sm opacity-60">Chưa có tài liệu nào. Gắn từ ngân hàng để cả hai cùng xem.</p>
       )}
-      <p className="text-[11px] opacity-50 mt-2">Chỉ hai người tham gia buổi học có quyền truy cập.</p>
+      <ErrorNotice
+        error={bank.error}
+        retry={() => {
+          void bank.reload()
+        }}
+      />
+      <p className="text-[11px] opacity-50 mt-2">
+        Người có quyền tài liệu và cả hai thành viên buổi học được xem tài liệu đã gắn.
+      </p>
       {pick && (
         <Modal onClose={() => setPick(false)}>
           <h3 className="text-xl font-extrabold mb-3">Gắn vào Study Room</h3>
@@ -412,10 +513,11 @@ export function RoomResources({
                 disabled={busy}
                 className="w-full text-left flex gap-3 items-center p-3 rounded-2xl hover:bg-matcha-soft"
                 onClick={() => {
-                  void action(
-                    () => rpc('attach_resource', { resource: r.id, attached: true }),
-                    'Đã gắn tài liệu'
-                  )
+                  void action(async () => {
+                    if (r.scope === 'library') await libraryRepository.attach(r.id, sessionId)
+                    else await rpc('attach_resource', { resource: r.id, attached: true })
+                    await bank.reload()
+                  }, 'Đã gắn tài liệu')
                 }}
               >
                 <span>{icon(r.kind)}</span>
@@ -443,7 +545,12 @@ export function RoomResources({
           </div>
         </Modal>
       )}
-      {upload && <UploadModal sessionId={sessionId} onClose={() => setUpload(false)} />}{' '}
+      {upload &&
+        (bank.available ? (
+          <LibraryUpload sessionId={sessionId} onSaved={bank.reload} onClose={() => setUpload(false)} />
+        ) : (
+          <LegacyUploadModal sessionId={sessionId} onClose={() => setUpload(false)} />
+        ))}
       {preview && <ResourcePreview resource={preview} onClose={() => setPreview(null)} />}
     </div>
   )

@@ -77,7 +77,10 @@ export interface SessionView {
 }
 export interface ResourceView {
   id: string
-  session_id: string
+  session_id: string | null
+  scope?: 'library' | 'session'
+  visibility?: 'restricted' | 'public'
+  session_ids?: string[]
   uploader_id: string
   uploaderName?: string
   name: string

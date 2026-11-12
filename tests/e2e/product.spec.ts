@@ -176,7 +176,7 @@ test('two learners persist invitations, chat, a session, materials, feedback and
   await a.getByRole('button', { name: 'Lưu vào ngân hàng', exact: true }).click()
   await expect(a.getByRole('dialog')).toHaveCount(0)
   await expect(a.getByText('notes', { exact: true })).toBeVisible()
-  expect((await backend.db.query('select * from public.session_resources')).rows).toHaveLength(1)
+  expect((await backend.db.query('select * from public.library_resources')).rows).toHaveLength(1)
   await a
     .getByText('notes', { exact: true })
     .locator('..')

@@ -34,7 +34,11 @@ Checklist chia sẻ cho cả hai, chỉ sửa khi session active. Google Meet do
 
 ## Tài liệu và tiến độ
 
-Tài liệu luôn thuộc một session; thư viện là tổng các tài liệu user được phép đọc, không phải public library. Upload/link/quiz có metadata thật. Gắn/gỡ chỉ thay trạng thái xuất hiện trong chính Study Room của tài liệu, không chia sẻ chéo session âm thầm. Chỉ uploader xóa. PDF/ảnh có preview; Office/TXT tải xuống bằng signed URL. Link giáo dục phải HTTPS. Không lưu permanent public URLs cho private files.
+Tài liệu mới thuộc ngân hàng độc lập, không cần session để upload file/link/Quiz. Mặc định restricted: uploader và người được cấp quyền trực tiếp xem được; public cho mọi tài khoản đã đăng nhập StudyMatch, không phải anonymous. Bucket library-materials luôn private; kiểm tra quyền cả metadata và Storage, chỉ cấp signed URL 60 giây. Chỉ uploader quản lý ACL/xóa tài liệu.
+
+Mọi người có quyền đọc được gắn tài liệu vào buổi học họ tham gia còn chỉnh sửa được. Attachment cấp quyền xem cho cả hai participant và có thể dùng cùng tài liệu ở nhiều buổi. Gỡ attachment loại quyền kế thừa từ buổi đó; direct grant hoặc public vẫn độc lập. Thu hồi direct grant không tự xóa quyền qua buổi học; uploader có thể gỡ khỏi mọi buổi học rồi đặt restricted/thu hồi grants để thu hồi đầy đủ. Permission cho tài liệu đã gắn còn tồn tại sau khi buổi học kết thúc để người tham gia xem lại, tới khi bị gỡ/xóa.
+
+Tài liệu session_resources cũ giữ nguyên bucket/quyền/API. Uploader có thể sao chép sang ngân hàng mới để dùng public/cấp quyền; bản cũ và quyền của người đã tham gia buổi cũ không bị xóa. PDF/ảnh có preview; Office/TXT tải qua signed URL. Với liên kết ngoài, quyền StudyMatch kiểm soát việc thấy liên kết; quyền thật trên Google Drive/Forms/website nguồn vẫn do nơi đó quản lý.
 
 Storage và metadata là hai API call, không có transaction xuyên dịch vụ: upload thất bại metadata sẽ cố cleanup object; lỗi cleanup được báo rõ. Avatar bị bỏ sau khi upload hoặc object mồ côi cần bảo trì định kỳ khi vận hành; không có background service được triển khai ở MVP này.
 
