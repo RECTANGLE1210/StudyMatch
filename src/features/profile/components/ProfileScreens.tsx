@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useProfile } from '../hooks/ProfileProvider'
 import { profileService } from '../services/profileService'
 import { SubjectCreateForm } from '../../subjects/components/SubjectCreateForm'
-import { subjectNameKey, subjectCodeKey } from '../../subjects/domain/subjectIdentity'
+import { subjectNameKey, subjectCodeKey, visibleSubjectCode } from '../../subjects/domain/subjectIdentity'
 import { catalogRepository } from '../../subjects/repositories/catalogRepository'
 import { scoreProfiles } from '../../matching/services/scoreProfiles'
 import { ErrorNotice } from '../../../components/shared/Feedback'
@@ -428,7 +428,7 @@ function SubjectEditor({
   return (
     <Modal onClose={() => (dirty ? null : onClose())}>
       <ErrorNotice error={catalogError} />
-      <p className="text-xs opacity-60">{d.code || 'Môn tự thêm'}</p>
+      <p className="text-xs opacity-60">{visibleSubjectCode(d.code)}</p>
       <h3 className="text-xl font-extrabold mb-4">{d.name}</h3>
       <div className="space-y-4">
         <div>
@@ -580,7 +580,7 @@ function SubjectPicker({
                     className="w-full text-left px-4 py-3 rounded-2xl hover:bg-matcha-soft flex justify-between"
                   >
                     <b>{s.name}</b>
-                    <span className="text-xs opacity-60">{s.code}</span>
+                    <span className="text-xs opacity-60">{visibleSubjectCode(s.code)}</span>
                   </button>
                 ))}
                 {!f.length && !q.trim() && (
@@ -635,7 +635,7 @@ function SubjectsManager() {
               <div className="flex justify-between gap-2">
                 <div>
                   <b>{s.name}</b>
-                  <p className="text-xs opacity-60">{s.code || 'Môn tự thêm'}</p>
+                  <p className="text-xs opacity-60">{visibleSubjectCode(s.code)}</p>
                 </div>
                 <span className="text-xs text-forest font-semibold whitespace-nowrap">
                   {levelDot[s.level]} {s.level}

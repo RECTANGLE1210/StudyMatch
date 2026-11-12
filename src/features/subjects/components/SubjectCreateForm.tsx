@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { profileService } from '../../profile/services/profileService'
-import { subjectNameKey, subjectCodeKey } from '../domain/subjectIdentity'
+import { subjectNameKey, subjectCodeKey, visibleSubjectCode } from '../domain/subjectIdentity'
 import { ErrorNotice } from '../../../components/shared/Feedback'
 import { errorMessage } from '../../../lib/utils/errors'
 import type { CatalogSubject } from '../../../types/product'
@@ -107,7 +107,7 @@ export function SubjectCreateForm({
       {existing && (
         <div className="rounded-xl bg-matcha-soft p-3 text-sm">
           <b>{existing.name}</b>
-          <p className="opacity-70">{existing.code}</p>
+          <p className="opacity-70">{visibleSubjectCode(existing.code)}</p>
           {alreadyAdded ? (
             <p>Môn này đã có trong hồ sơ của bạn.</p>
           ) : (
