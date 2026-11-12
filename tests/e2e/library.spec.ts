@@ -66,9 +66,24 @@ test('standalone upload, direct grants, inherited room access and public visibil
     await expect(b.getByText(title, { exact: true })).toHaveCount(0)
     await expect(c.getByText(title, { exact: true })).toHaveCount(0)
     await card.getByRole('button', { name: 'Chia sẻ', exact: true }).click()
-    await a.getByPlaceholder('Tìm theo tên hiển thị…').fill('Người học B')
+    const friends = a.getByRole('combobox', { name: 'Bạn bè đã kết nối', exact: true })
+    await expect(friends).toBeDisabled()
+    await expect(a.getByText('Bạn chưa có bạn bè đã kết nối để chọn.', { exact: true })).toBeVisible()
+    const subject = (await backend.db.query<{ id: string }>('select id from public.subjects limit 1')).rows[0]
+      .id
+    const invitation = await backend.as(A, (tx) =>
+      tx.query<{ id: string }>('select public.send_invitation($1,$2) id', [B, subject])
+    )
+    await backend.as(B, (tx) =>
+      tx.query("select public.respond_invitation($1,'accepted')", [invitation.rows[0].id])
+    )
+    await a.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(friends).toBeEnabled()
+    await expect(friends.locator(`option[value="${C}"]`)).toHaveCount(0)
+    await friends.selectOption(B)
     await a.getByRole('button', { name: 'Cấp quyền cho Người học B', exact: true }).click()
     await expect(a.getByRole('button', { name: 'Thu hồi quyền của Người học B', exact: true })).toBeVisible()
+    await expect(friends.locator(`option[value="${B}"]`)).toHaveCount(0)
     await b.evaluate(() => window.dispatchEvent(new Event('focus')))
     await expect(b.getByText(title, { exact: true })).toBeVisible()
     const session = (
@@ -99,6 +114,7 @@ test('standalone upload, direct grants, inherited room access and public visibil
     await a.getByRole('button', { name: 'Đóng', exact: true }).click()
     await card.getByRole('button', { name: 'Chia sẻ', exact: true }).click()
     await a.getByRole('button', { name: 'Thu hồi quyền của Người học B', exact: true }).click()
+    await expect(friends.locator(`option[value="${B}"]`)).toHaveCount(1)
     await expect(a.getByText('Đã gắn vào 1 buổi học.', { exact: false })).toBeVisible()
     await a.getByRole('button', { name: 'Gỡ khỏi mọi buổi học', exact: true }).click()
     await expect(b.getByText(title, { exact: true })).toHaveCount(0)
@@ -111,6 +127,10 @@ test('standalone upload, direct grants, inherited room access and public visibil
     await a.getByRole('button', { name: 'Lưu quyền truy cập', exact: true }).click()
     await c.evaluate(() => window.dispatchEvent(new Event('focus')))
     await expect(c.getByText(title, { exact: true })).toHaveCount(0)
+    await backend.as(A, (tx) => tx.query('select public.block_user($1)', [B]))
+    await backend.as(A, (tx) => tx.query('select public.unblock_user($1)', [B]))
+    await a.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(friends.locator(`option[value="${B}"]`)).toHaveCount(0)
     expect(errors).toEqual([])
   } finally {
     await ca.close()

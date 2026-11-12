@@ -11,7 +11,7 @@ Tải tài liệu vào ngân hàng bất cứ lúc nào, không cần tạo bu�
 
 ## Luật quyền
 
-- Mặc định **Chỉ tôi và người được cấp quyền**. Uploader chọn Chia sẻ, tìm người theo tên hiển thị và cấp/thu hồi quyền trực tiếp.
+- Mặc định **Chỉ tôi và người được cấp quyền**. Uploader chọn Chia sẻ, chọn bạn bè đã kết nối từ danh sách và cấp/thu hồi quyền trực tiếp. Danh sách loại người bị chặn và người đã có quyền; không cần nhập tên.
 - **Công khai** cho mọi tài khoản đã đăng nhập StudyMatch. Anonymous không được đọc metadata hoặc xin signed URLs.
 - Người có quyền đọc được gắn tài liệu vào buổi học còn chỉnh sửa được mà họ tham gia; hệ thống tự cho cả hai participant quyền xem, kể cả khi uploader không dự buổi đó.
 - Có thể gắn cùng một tài liệu vào nhiều buổi, không nhân bản file. Quyền qua attachment tồn tại để xem lại lịch sử cho đến khi tài liệu bị gỡ/xóa.
