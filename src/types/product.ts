@@ -98,6 +98,7 @@ export interface NotificationView {
   kind:
     | 'invitation'
     | 'invitation_accepted'
+    | 'invitation_rejected'
     | 'message'
     | 'session_proposed'
     | 'session_confirmed'

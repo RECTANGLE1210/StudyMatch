@@ -31,6 +31,12 @@ beforeAll(async () => {
     readFileSync(new URL('../../supabase/migrations/202611110001_room_sync.sql', import.meta.url), 'utf8')
   )
   await db.exec(
+    readFileSync(
+      new URL('../../supabase/migrations/202611120003_invitation_rejected_notification.sql', import.meta.url),
+      'utf8'
+    )
+  )
+  await db.exec(
     `insert into auth.users values('${A}'),('${B}'),('${C}'); insert into public.subjects(id,code,name) values('${SUBJECT}','MATH','Math');`
   )
 }, 30_000)
@@ -90,6 +96,63 @@ describe('migrated PostgreSQL authorization', () => {
     await asUser(B)
     await db.query(`select public.respond_invitation('${r.rows[0].id}','accepted')`)
     expect((await db.query('select * from public.conversation_participants')).rows).toHaveLength(2)
+  })
+  it('notifies only the sender once on rejection and supports unread/read persistence', async () => {
+    await asUser(B)
+    const request = (await db.query<{ id: string }>(`select public.send_invitation('${A}','${SUBJECT}') id`))
+      .rows[0].id
+    await asUser(A)
+    await db.query("select public.respond_invitation($1,'rejected')", [request])
+    expect(
+      (await db.query("select * from public.notifications where kind='invitation_rejected'")).rows
+    ).toHaveLength(0)
+    await expect(db.query("select public.respond_invitation($1,'rejected')", [request])).rejects.toThrow()
+    await asUser(B)
+    const rows = (
+      await db.query<{ id: string; entity_id: string; read_at: string | null }>(
+        "select * from public.notifications where kind='invitation_rejected'"
+      )
+    ).rows
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ entity_id: request, read_at: null })
+    const workspace = () =>
+      db.query<{ unread: number }>("select (public.get_workspace()->>'unreadNotifications')::integer unread")
+    expect((await workspace()).rows[0].unread).toBe(1)
+    await asUser(C)
+    expect((await db.query('select * from public.notifications')).rows).toHaveLength(0)
+    await db.query('select public.mark_notification_read($1)', [rows[0].id])
+    await asUser(B)
+    expect((await workspace()).rows[0].unread).toBe(1)
+    await db.query('select public.mark_notification_read($1)', [rows[0].id])
+    expect((await workspace()).rows[0].unread).toBe(0)
+    expect((await db.query('select * from public.notifications')).rows).toHaveLength(1)
+  })
+  it('does not notify on unauthorized rejection or sender cancellation', async () => {
+    await asUser(B)
+    const request = (await db.query<{ id: string }>(`select public.send_invitation('${A}','${SUBJECT}') id`))
+      .rows[0].id
+    for (const actor of [B, C]) {
+      await asUser(actor)
+      await expect(db.query("select public.respond_invitation($1,'rejected')", [request])).rejects.toThrow()
+    }
+    await asUser(B)
+    await db.query("select public.respond_invitation($1,'cancelled')", [request])
+    expect((await db.query('select * from public.notifications')).rows).toHaveLength(0)
+    await asUser(A)
+    expect(
+      (await db.query("select * from public.notifications where kind='invitation_rejected'")).rows
+    ).toHaveLength(0)
+  })
+  it('preserves acceptance notifications without adding rejection notifications', async () => {
+    await asUser(B)
+    const request = (await db.query<{ id: string }>(`select public.send_invitation('${A}','${SUBJECT}') id`))
+      .rows[0].id
+    await asUser(A)
+    await db.query("select public.respond_invitation($1,'accepted')", [request])
+    await asUser(B)
+    expect((await db.query<{ kind: string }>('select kind from public.notifications')).rows).toEqual([
+      { kind: 'invitation_accepted' },
+    ])
   })
   it('enforces blocking in the database for invitations and messages', async () => {
     await asUser(B)

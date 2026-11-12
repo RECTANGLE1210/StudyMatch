@@ -42,7 +42,7 @@ Tài liệu session_resources cũ giữ nguyên bucket/quyền/API. Uploader có
 
 Storage và metadata là hai API call, không có transaction xuyên dịch vụ: upload thất bại metadata sẽ cố cleanup object; lỗi cleanup được báo rõ. Avatar bị bỏ sau khi upload hoặc object mồ côi cần bảo trì định kỳ khi vận hành; không có background service được triển khai ở MVP này.
 
-Progress tổng hợp từ completed session timestamps, completed goals, missed states và distinct partners; không có số liệu seed. Biểu đồ ngày dùng timezone của profile. Notifications là database rows trong transaction của thao tác; bell/read state không giả lập push notification.
+Progress tổng hợp từ completed session timestamps, completed goals, missed states và distinct partners; không có số liệu seed. Biểu đồ ngày dùng timezone của profile. Notifications là database rows trong transaction của thao tác; bell/read state không giả lập push notification. Khi người nhận từ chối lời mời kết nối, người gửi nhận thông báo `invitation_rejected` trong cùng transaction; không gửi cho người từ chối, không tạo lặp khi retry. Áp riêng migration `202611120003_invitation_rejected_notification.sql` sau khi deploy frontend tương thích; chỉ áp dụng từ chối mới, không phát lại lịch sử.
 
 ## Gói học tập
 

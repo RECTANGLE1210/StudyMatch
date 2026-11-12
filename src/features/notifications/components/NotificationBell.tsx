@@ -10,6 +10,7 @@ import type { NotificationView } from '../../../types/product'
 const labels: Record<NotificationView['kind'], string> = {
   invitation: 'Bạn nhận được lời mời học cùng',
   invitation_accepted: 'Lời mời của bạn đã được chấp nhận',
+  invitation_rejected: 'Lời mời của bạn đã bị từ chối',
   message: 'Bạn có tin nhắn mới',
   session_proposed: 'Bạn nhận được đề xuất lịch học',
   session_confirmed: 'Buổi học đã được xác nhận',
@@ -24,6 +25,13 @@ export function NotificationBell() {
       data?.invitations.filter((i) => i.recipient_id === p.id && i.status === 'pending') ?? [],
     notes = data?.notifications ?? []
   const count = invitations.length + (data?.unreadNotifications ?? 0)
+  const notificationLabel = (note: NotificationView) => {
+    if (note.kind === 'invitation_rejected') {
+      const recipient = data?.invitations.find((i) => i.id === note.entity_id)?.recipient
+      if (recipient?.name) return `${recipient.name} đã từ chối lời mời học cùng của bạn`
+    }
+    return labels[note.kind]
+  }
   const respond = async (id: string, accepted: boolean) => {
     await action(
       () => rpc('respond_invitation', { request_id: id, next_status: accepted ? 'accepted' : 'rejected' }),
@@ -141,7 +149,7 @@ export function NotificationBell() {
                     className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!n.read_at ? 'bg-caramel' : 'bg-transparent'}`}
                   />
                   <span className="text-sm flex-1">
-                    {labels[n.kind]}
+                    {notificationLabel(n)}
                     <br />
                     <span className="text-xs opacity-50">{displayDate(n.created_at, p.timezone)}</span>
                   </span>
